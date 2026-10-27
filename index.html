@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DynaCellect protocol viewer</title>
+<style>
+:root{
+  --bg:#f6f8fb; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280; --line:#cbd5e1; --bag:#eef3f9; --bagStroke:#94a3b8;
+  --accent:#1e7fd6; --dest:#d97706; --ok:#16a34a; --warn:#b45309; --blue:#2563eb; --chip:#e5eaf1; --chipOn:#1e7fd6; --chipText:#1f2937;
+  --tint:#e8f1fb; --flow:#5bb0ff; --chev:#0b4f9c; --tube:#d9dcea; --fill:#9bd0ff; --err:#dc2626;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#10151c; --panel:#18202a; --ink:#e5e9f0; --muted:#9aa5b4; --line:#3a4656; --bag:#1f2b38; --bagStroke:#5b6b7f;
+         --accent:#4da3ff; --dest:#f0a63a; --ok:#4ade80; --warn:#f0b35a; --blue:#6ea8ff; --chip:#263140; --chipOn:#2f7fd6; --chipText:#e5e9f0; --tint:#1c2a3a;
+         --flow:#2f7fd6; --chev:#e6f1ff; --tube:#2d394a; --fill:#2f6fb0; --err:#f87171; }
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:18px;margin:0}
+.sub{color:var(--muted);font-size:13px}
+button,.btn,select{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+button:hover,.btn:hover{border-color:var(--accent)}
+button.primary,.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+main{max-width:1500px;margin:0 auto;padding:16px 20px 40px}
+#drop{border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted);background:var(--panel)}
+#drop.over{border-color:var(--accent);background:var(--tint)}
+#msg{margin:10px 0;color:var(--warn);min-height:1.2em}
+.grid3{display:grid;grid-template-columns:230px minmax(0,1.5fr) minmax(300px,0.95fr);gap:16px;align-items:start}
+@media (max-width:1150px){.grid3{grid-template-columns:210px minmax(0,1fr)} .grid3 > .right{grid-column:1 / -1}}
+@media (max-width:720px){.grid3{grid-template-columns:1fr} #left{position:static;max-height:none} #listcard{max-height:260px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 8px}
+#left{position:sticky;top:8px;max-height:calc(100vh - 24px);display:flex;flex-direction:column;gap:12px}
+#left .card{margin-bottom:0}
+#listcard{padding:10px;flex:1;min-height:120px;display:flex;flex-direction:column}
+#steplist{overflow:auto;display:flex;flex-direction:column;gap:3px;min-height:0}
+.row{display:flex;gap:8px;align-items:center;text-align:left;width:100%;padding:6px 8px;border-radius:8px;border:1px solid transparent;background:transparent}
+.row:hover{background:var(--tint)}
+.row.cur{background:var(--chipOn);color:#fff}
+.row .n{min-width:26px;font-weight:600;opacity:.85}
+.row .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .fl{font-size:11px;border:1px solid var(--dest);color:var(--dest);border-radius:999px;padding:0 6px}
+.row.cur .fl{border-color:#fff;color:#fff}
+.row .fl.bad{border-color:var(--err);color:var(--err)}
+.row.cur .fl.bad{border-color:#fff;color:#fff}
+dl.mini{grid-template-columns:90px 1fr;gap:3px 8px;font-size:13px;margin-top:6px}
+#bags input{width:62px}
+#bags td.num{text-align:right;white-space:nowrap}
+.st-ok{color:var(--ok);font-weight:600}
+.st-bad{color:var(--err);font-weight:600}
+.st-warn{color:var(--dest);font-weight:600}
+.msgline{margin:2px 0;font-size:13px}
+.msgline.err{color:var(--err)}
+.msgline.warn{color:var(--warn)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.btnrow button{padding:5px 10px;font-size:13px}
+.kitbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:6px}
+#kitsvg svg{width:100%;height:auto;display:block}
+#rocker svg{width:100%;max-width:340px;height:auto;display:block}
+.nav{display:flex;gap:8px;align-items:center;margin:0 0 12px}
+.nav .grow{flex:1}
+.tl{display:flex;height:22px;gap:2px;margin:10px 0 4px}
+.tl div{background:var(--chip);border-radius:3px;min-width:3px;cursor:pointer}
+.tl div.cur{background:var(--chipOn)}
+.tl div.pr{box-shadow:inset 0 -3px 0 var(--dest)}
+dl{margin:0;display:grid;grid-template-columns:110px 1fr;gap:6px 10px}
+dt{color:var(--muted)}
+dd{margin:0}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--tint);border:1px solid var(--line);font-size:12px;margin:0 4px 4px 0}
+.tag.bs{border-color:var(--blue);color:var(--blue)}
+.tag.pr{border-color:var(--dest);color:var(--dest)}
+.big{font-size:20px;font-weight:600}
+table{border-collapse:collapse;width:100%}
+td,th{padding:4px 6px;text-align:left;font-size:13px;vertical-align:middle}
+input[type=number]{width:80px;font:inherit;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.note{color:var(--muted);font-size:12px}
+.warn{color:var(--warn);font-size:12px}
+.hide{display:none}
+.prepbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+.prepbar .grow{flex:1}
+.prepbar input[type=number]{width:64px}
+#prepTable th,#prepTable td{border-bottom:1px solid var(--line);padding:6px 8px;font-size:13px}
+#prepTable th{background:var(--tint)}
+#prepTable td.num{text-align:right;white-space:nowrap}
+.linebadge{display:inline-block;min-width:34px;text-align:center;font-weight:700;font-size:18px;border:2px solid var(--accent);color:var(--accent);border-radius:8px;padding:0 8px;white-space:nowrap}
+.cellbad{color:var(--err);font-weight:700}
+#prepKit svg{width:100%;max-width:640px;height:auto;display:block;margin:8px 0}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--ink:#000;--muted:#444;--line:#999;--tint:#eee;--bag:#f1f5fa;--bagStroke:#7b8794;--accent:#1e5fa8;--dest:#b45309;--ok:#15803d;--err:#b91c1c;--tube:#d9dcea;--fill:#bcdcf7;--flow:#5bb0ff;--chev:#0b4f9c}
+  body{background:#fff;color:#000}
+  header,#drop,#msg,.nav,.grid3,.noprint{display:none !important}
+  main{padding:0;max-width:none}
+  #prepCard{border:none;padding:0;margin:0}
+}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:0 0 10px;align-items:flex-end}
+.tab{padding:7px 10px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--chip);cursor:pointer;display:flex;gap:8px;align-items:center;max-width:280px;font-size:14px}
+.tab span.lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab.on{background:var(--panel);font-weight:600;border-color:var(--accent);position:relative;top:1px}
+.tab .x{opacity:.55;padding:0 4px;border-radius:4px}
+.tab .x:hover{opacity:1;background:var(--tint)}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.pill{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:14px}
+.pill.on{background:var(--chipOn);border-color:var(--chipOn);color:#fff}
+.tablewrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
+table.grid{border-collapse:collapse;width:100%}
+table.grid th{position:sticky;top:0;background:var(--tint);z-index:1;border-bottom:1px solid var(--line);white-space:nowrap}
+table.grid td,table.grid th{padding:6px 8px;font-size:13px;vertical-align:top;border-bottom:1px solid var(--line)}
+table.grid tr.click{cursor:pointer}
+table.grid tr.click:hover{background:var(--tint)}
+td.chg{background:rgba(250,204,21,.28)}
+tr.onlyA td{background:rgba(220,38,38,.10)}
+tr.onlyB td{background:rgba(22,163,74,.12)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.toolbar input[type=text]{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;min-width:220px}
+.toolbar .grow{flex:1}
+.sum{display:grid;grid-template-columns:200px 1fr 1fr;gap:4px 12px;font-size:13px;margin:0 0 12px}
+.sum div.h{font-weight:600}
+.sum div.d{background:rgba(250,204,21,.28);border-radius:4px;padding:0 4px}
+.warnmark{color:var(--err);font-weight:700}
+ul.chg{margin:6px 0 0 18px;padding:0;font-size:13px}
+@media print{ #tabs,#subtabs,#vSteps,#vOverview,#vInfo,#vCompare{display:none !important} }
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:0 0 10px;align-items:flex-end}
+.tab{padding:7px 10px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--chip);cursor:pointer;display:flex;gap:8px;align-items:center;max-width:280px;font-size:14px}
+.tab span.lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab.on{background:var(--panel);font-weight:600;border-color:var(--accent);position:relative;top:1px}
+.tab .x{opacity:.55;padding:0 4px;border-radius:4px}
+.tab .x:hover{opacity:1;background:var(--tint)}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.pill{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:14px}
+.pill.on{background:var(--chipOn);border-color:var(--chipOn);color:#fff}
+.tablewrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
+table.grid{border-collapse:collapse;width:100%}
+table.grid th{position:sticky;top:0;background:var(--tint);z-index:1;border-bottom:1px solid var(--line);white-space:nowrap}
+table.grid td,table.grid th{padding:6px 8px;font-size:13px;vertical-align:top;border-bottom:1px solid var(--line)}
+table.grid tr.click{cursor:pointer}
+table.grid tr.click:hover{background:var(--tint)}
+td.chg{background:rgba(250,204,21,.28)}
+tr.onlyA td{background:rgba(220,38,38,.10)}
+tr.onlyB td{background:rgba(22,163,74,.12)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.toolbar input[type=text]{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;min-width:220px}
+.toolbar .grow{flex:1}
+.sum{display:grid;grid-template-columns:200px 1fr 1fr;gap:4px 12px;font-size:13px;margin:0 0 12px}
+.sum div.h{font-weight:600}
+.sum div.d{background:rgba(250,204,21,.28);border-radius:4px;padding:0 4px}
+.warnmark{color:var(--err);font-weight:700}
+ul.chg{margin:6px 0 0 18px;padding:0;font-size:13px}
+@media print{ #tabs,#subtabs,#vSteps,#vOverview,#vInfo,#vCompare{display:none !important} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>DynaCellect protocol viewer <span class="sub">Stage 3 &middot; several protocols, compare, bag preparation</span></h1>
+    <div class="sub" id="pinfo">Open one or more protocol .json files, or try the built-in example.</div>
+  </div>
+  <div>
+    <label class="btn primary" for="file">Open protocol(s) (.json)</label>
+    <input type="file" id="file" accept=".json,application/json" multiple class="hide">
+    <button id="ex">Load example (TRANG-TRY)</button>
+  </div>
+</header>
+<main>
+  <div id="drop">Drop DynaCellect protocol .json files here (one or several)<br><span class="note">Everything stays on your computer; nothing is uploaded.</span></div>
+  <div id="msg"></div>
+  <div id="app" class="hide">
+    <div class="tabs" id="tabs"></div>
+    <div class="subtabs" id="subtabs">
+      <button class="pill" data-v="steps">Steps</button><button class="pill" data-v="overview">Overview</button>
+      <button class="pill" data-v="prep">Bag preparation</button><button class="pill" data-v="info">Info</button>
+    </div>
+
+    <section id="vSteps">
+      <div class="nav">
+        <button id="prev" aria-label="Previous step">&larr; Previous</button>
+        <button id="next" class="primary" aria-label="Next step">Next &rarr;</button>
+        <span class="grow sub" id="pos"></span>
+        <span class="sub">Tip: arrow keys also move between steps</span>
+      </div>
+      <div class="grid3">
+        <aside id="left">
+          <div class="card" id="rockcard"><h2>Rocker &amp; magnet</h2><div id="rocker"></div><dl class="mini" id="rockdl"></dl></div>
+          <div class="card" id="listcard"><h2>Steps</h2><div id="steplist"></div></div>
+        </aside>
+        <section>
+          <div class="card">
+            <div class="kitbar"><h2 style="margin:0">Fluid path <span class="sub" id="kitname"></span></h2></div>
+            <div id="kitsvg"></div>
+            <div class="tl" id="tl" title="Step durations (estimate). Orange underline = step has a prompt."></div>
+            <div class="note" id="tltext"></div>
+          </div>
+        </section>
+        <section class="right">
+          <div class="card" id="detail"></div>
+          <div class="card" id="bagsCard"><h2>Bags <span class="note">(edit start volume and capacity; the diagram and checks update)</span></h2>
+            <div id="bagsum" class="note" style="margin-bottom:6px"></div>
+            <table id="bags"></table>
+            <div class="btnrow"><button id="resetBags">Reset to protocol values</button>
+              <label class="sub">Bubble sensor at start <select id="sensorStart"><option>Dry</option><option>Wet</option></select></label></div>
+            <div class="note" style="margin-top:6px">Volumes are estimates: each step moves its volume from the source bag to the destination bag. Air from lines J and K is tracked separately (see the preparation sheet). Liquid held in the tubing is ignored.</div>
+          </div>
+          <div class="card hide" id="inputsCard">
+            <h2>Data entries <span class="note">(type values to see volumes and times change)</span></h2>
+            <table id="inputs"></table>
+            <div class="note" style="margin-top:6px" id="varsNote"></div>
+          </div>
+          <div class="card">
+            <h2>About this view</h2>
+            <div class="note">Schematic only (not to scale), drawn after the instrument's fluid-path screen and the kit tubing figures in the user guide. Bubble sensor 1 sits just left of the pump; sensor 2 is on line A (both kits). Which sensor a step uses is read from the name in the file (no suffix = sensor 1, <code>_2</code> = sensor 2, <code>_both</code> = both); that reading is an assumption. Times are estimates: volume &divide; flow rate, or the set duration; prompts and waiting for the user are not included.</div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="vOverview" class="hide card">
+      <h2>Overview <span class="note">(click a row to open that step)</span></h2>
+      <div class="toolbar">
+        <input type="text" id="ovFilter" placeholder="Filter steps (name, path, trigger...)">
+        <label class="sub"><input type="checkbox" id="ovWarn"> only steps with warnings</label>
+        <span class="grow"></span>
+        <button id="ovCopy">Copy table</button><button id="ovCsv">Download CSV</button><span class="note" id="ovMsg"></span>
+      </div>
+      <div class="tablewrap"><table class="grid" id="ovTable"></table></div>
+      <div class="note" id="ovNote" style="margin-top:6px"></div>
+    </section>
+
+    <section id="vPrep" class="hide">
+    <section class="card" id="prepCard">
+      <h2>Bag preparation sheet</h2>
+      <div class="prepbar noprint">
+        <label class="sub">Safety margin <input type="number" id="margin" min="0" step="5" value="10"> %</label>
+        <button id="usePlain">Use protocol start volumes</button>
+        <button id="useRec" class="primary">Use recommended start volumes</button>
+        <label class="sub"><input type="checkbox" id="countAir" checked> Count air pushed into bags</label>
+        <span class="grow"></span>
+        <button id="copyPrep">Copy table</button><button id="printPrep">Print / save as PDF</button>
+        <span class="note" id="copyMsg"></span>
+      </div>
+      <div id="prepHead" class="note"></div>
+      <table id="prepTable"></table>
+      <div id="prepKit"></div>
+      <div id="prepNotes" class="note"></div>
+    </section>
+    </section>
+
+    <section id="vInfo" class="hide card">
+      <h2>Protocol information</h2>
+      <div class="grid3" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+        <div><h2 style="font-size:14px">Protocol</h2><table class="grid" id="infoTable"></table></div>
+        <div><h2 style="font-size:14px">Kit setup (bags)</h2><table class="grid" id="infoBags"></table>
+          <h2 style="font-size:14px;margin-top:14px">Data entries</h2><table class="grid" id="infoDE"></table>
+          <h2 style="font-size:14px;margin-top:14px">Variables</h2><table class="grid" id="infoVars"></table></div>
+      </div>
+    </section>
+
+    <section id="vCompare" class="hide card">
+      <h2>Compare two protocols</h2>
+      <div class="toolbar">
+        <label class="sub">A <select id="cmpA"></select></label>
+        <label class="sub">B <select id="cmpB"></select></label>
+        <label class="sub"><input type="checkbox" id="cmpDiff" checked> show only differences</label>
+        <span class="grow"></span><button id="cmpCopy">Copy list of changes</button><span class="note" id="cmpMsg"></span>
+      </div>
+      <div class="note" id="cmpNeed"></div>
+      <div id="cmpSum"></div>
+      <div class="tablewrap"><table class="grid" id="cmpTable"></table></div>
+      <div id="cmpChanges"></div>
+      <div class="note" style="margin-top:8px">Steps are matched by name, in order, so an inserted or removed step does not mark everything after it as different. Step numbers are ignored. Each protocol is compared using the data entry values and bag volumes currently set in its own tab.</div>
+    </section>
+  </div>
+</main>
+
+<script id="example" type="application/json">{"FixedData":{"TargetCellType":"CD3+"},"Metadata":{"Author":"ProtocolBuilder","Checksum":"d53401a441fcfe42c158368e19c3214f","CreatedBy":"","DateCreated":"20260929","DateSaved":"","DateTimeCreated":1790662331674,"ExperimentName":"","FileName":"TRANG-TRY","FirstCreatedVersion":"","LastDateTimeEdited":"20260929141211","LastRunDatetime":"","LastRunDuration":"","LongDescription":"","NameChecksum":"","NumberOfSteps":"6","ProgrammedBy":"","ProtocolName":"TRANG-TRY","ProtocolType":"Isolation","RecipeType":"UserCreated","SavedVersion":"","SchemaVersion":"1.0.2","TimeStamp":"141211","Username":""},"RunData":{"BeadStockConcentration":"","VolumeOfBeads":""},"Steps":[{"ChosenBags":["I","A"],"Connections":[{"con":"1","name":"I"},{"con":"2","name":"A"}],"Description":"","Label":"Step 1(1)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"prompt step1"},"Pumps":[{"Direction":"CCW","Duration":"","FlowRate":"150","Name":"1","Volume":"vb1","flowDirection":"I to A","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":1,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry_both","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["A","I"],"Connections":[{"con":"1","name":"A"},{"con":"2","name":"I"}],"Description":"","Label":"Step 1(2)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"50","Name":"1","Volume":"vb2","flowDirection":"A to I","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":2,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"DryToWet","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["I","A"],"Connections":[{"con":"1","name":"I"},{"con":"2","name":"A"}],"Description":"","Label":"Step 1(3)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CCW","Duration":"","FlowRate":"100","Name":"1","Volume":"vb3","flowDirection":"I to A","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":3,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry_2","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["",""],"Connections":[{"con":"1","name":""},{"con":"2","name":""}],"Description":"","Label":"Step 1(4)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"prompt step 4"},"Pumps":[{"Direction":"","Duration":"","FlowRate":"0","Name":"1","Volume":"","flowDirection":" to ","variableSet":false}],"Rocker":[{"AngleEnd":"30","AngleStart":"0","Duration":"30","Magnet":false,"RPM":"10","Rocking":true}],"SkipButton":true,"StepNumber":4,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"Timed Trigger","type":"Timer"}],"Valves":[{"Name":"1","Open":false},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":false},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["I","A"],"Connections":[{"con":"1","name":"I"},{"con":"2","name":"A"}],"Description":"","Label":"Step 1(5)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CCW","Duration":"vb4","FlowRate":"150","Name":"1","Volume":"","flowDirection":"I to A","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"0","Duration":"0","Magnet":false,"RPM":"10","Rocking":true}],"SkipButton":true,"StepNumber":5,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"Timed Trigger","type":"Timer"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["A","I"],"Connections":[{"con":"1","name":"A"},{"con":"2","name":"I"}],"Description":"","Label":"Step 1(6)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"prompt step 6"},"Pumps":[{"Direction":"CW","Duration":"vb5","FlowRate":"100","Name":"1","Volume":"","flowDirection":"A to I","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"0","Duration":"0","Magnet":false,"RPM":"10","Rocking":true}],"SkipButton":true,"StepNumber":6,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"DryToWet_both","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]}],"bags":{"A":{"capacity":"","connectToValve":"","description":"","label":"Isolation bag","second_connection":"","selected":"","startingVolume":""},"B":{"capacity":"","connectToValve":"","description":"","label":"Media","second_connection":"","selected":"","startingVolume":""},"C":{"capacity":"","connectToValve":"","description":"","label":"Example","second_connection":"","selected":"","startingVolume":""},"D":{"capacity":"","connectToValve":"","description":"","label":"Maybe nothing","second_connection":"","selected":"","startingVolume":""},"E":{"capacity":"","connectToValve":"","description":"","label":"","second_connection":"","selected":"","startingVolume":""},"F":{"capacity":"","connectToValve":"","description":"","label":"","second_connection":"","selected":"","startingVolume":""},"G":{"capacity":"","connectToValve":"","description":"","label":"","second_connection":"","selected":"","startingVolume":"500"},"H":{"capacity":"","connectToValve":"","description":"BeadSite","label":"","second_connection":"","selected":"","startingVolume":""},"I":{"capacity":"","connectToValve":"","description":"","label":"Cells","second_connection":"","selected":"","startingVolume":"Variable 1"}},"dataEntry":[{"de1":{"Name":"Data Entry 1","max":"20000","min":"1","units":"mL"},"de2":{"Name":"Data Entry 2","max":"10","min":"1","units":"mL"},"de3":{"Name":"Data Entry 3","max":"10000","min":"1","units":"seconds"},"de4":{"Name":"Data Entry 4","max":"5000","min":"1","units":"seconds"}}],"variables":[{"vb1":{"Name":"Variable 1","dataentryvalue":"de1","fixedvalue":"10","operation":"+","types":"Volume","units":"mL"},"vb2":{"Name":"Variable 2","dataentryvalue":"de2","fixedvalue":"4","operation":"*","types":"Volume","units":"mL"},"vb3":{"Name":"Variable 3","dataentryvalue":"de1","fixedvalue":"0","operation":"","types":"Volume","units":"mL"},"vb4":{"Name":"Variable 4","dataentryvalue":"de3","fixedvalue":"10","operation":"+","types":"Time","units":"seconds"},"vb5":{"Name":"Variable 5","dataentryvalue":"de4","fixedvalue":"2","operation":"*","types":"Time","units":"seconds"}}]}</script>
+<script id="logic">
+// <logic>
+
+const PAL = {ink:'var(--ink)',muted:'var(--muted)',line:'var(--line)',bag:'var(--bag)',bagStroke:'var(--bagStroke)',
+  accent:'var(--accent)',dest:'var(--dest)',ok:'var(--ok)',blue:'var(--blue)',panel:'var(--panel)',
+  flow:'var(--flow)',chev:'var(--chev)',tube:'var(--tube)',fill:'var(--fill)',err:'var(--err)'};
+
+function num(x){ const v=parseFloat(x); return isNaN(v)?0:v; }
+function asArr(x){ return Array.isArray(x)?x:(x?[x]:[]); }
+function firstObj(x){ if(Array.isArray(x)) return (x.length&&x[0]&&typeof x[0]==='object')?x[0]:{}; return (x&&typeof x==='object')?x:{}; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtNum(v){ return (Math.round(v*10)/10).toString(); }
+function fmtTime(sec){ sec=Math.round(sec); const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  const p=n=>String(n).padStart(2,'0'); return h>0? h+':'+p(m)+':'+p(s) : m+':'+p(s); }
+
+function detectKind(root){
+  if(!root||typeof root!=='object') return 'unknown';
+  if(root.Steps && root.Metadata) return 'dyna';
+  if(root.Meta_data && root.Instrument && root.Steps) return 'rotea';
+  return 'unknown';
+}
+
+function parseProtocol(root){
+  const kind=detectKind(root);
+  if(kind!=='dyna') return {kind};
+  const md=root.Metadata||{};
+  const entries=[], vars=[];
+  asArr(root.dataEntry).forEach(g=>{ Object.keys(g||{}).forEach(id=>{ const v=g[id];
+    if(v&&typeof v==='object') entries.push({id,name:v.Name||id,min:num(v.min),max:num(v.max),units:v.units||'',value:num(v.min)}); }); });
+  asArr(root.variables).forEach(g=>{ Object.keys(g||{}).forEach(id=>{ const v=g[id];
+    if(v&&typeof v==='object') vars.push({id,name:v.Name||id,type:v.types||'',units:v.units||'',de:v.dataentryvalue||'',op:v.operation||'',fx:v.fixedvalue||''}); }); });
+  const bags={};
+  Object.keys(root.bags||{}).forEach(k=>{ const b=root.bags[k]||{};
+    bags[k]={label:b.label||'',desc:b.description||'',start:num(b.startingVolume),cap:num(b.capacity),second:b.second_connection||''}; });
+  const steps=asArr(root.Steps).map((s,i)=>{
+    const p=firstObj(s.Pumps), r=firstObj(s.Rocker), pr=(s.Prompt&&typeof s.Prompt==='object')?s.Prompt:{};
+    const fd=String(p.flowDirection||'').split(' to ');
+    return {
+      i, n:String(s.StepNumber||i+1), label:s.Label||'', desc:s.Description||'',
+      from:(fd[0]||'').trim(), to:(fd[1]||'').trim(),
+      rate:num(p.FlowRate), volRaw:String(p.Volume||''), durRaw:String(p.Duration||''),
+      rDurRaw:String(r.Duration||''), magnet:r.Magnet===true||r.Magnet==='true',
+      angStart:(r.AngleStart===undefined||r.AngleStart==='')?null:num(r.AngleStart), angEnd:num(r.AngleEnd),
+      rpm:num(r.RPM), rocking:r.Rocking===true||r.Rocking==='true',
+      prompt:{on:pr.enabled===true, msg:pr.message||''},
+      trig:asArr(s.Triggers).map(t=>({type:t.type||'',sub:t.subType||'',target:t.Target||'',unit:t.Unit||''}))
+    };
+  });
+  return {kind:'dyna', bagEdit:{}, simStart:'Dry', countAir:true, margin:10, name:md.ProtocolName||md.FileName||'(unnamed protocol)', schema:md.SchemaVersion||'', author:md.Author||'',
+          ptype:(md.ProtocolType||'')+' '+(md.RecipeType||''), meta:md, fixed:(root.FixedData&&typeof root.FixedData==='object')?root.FixedData:{}, run:(root.RunData&&typeof root.RunData==='object')?root.RunData:{}, saved:md.DateSaved||'', entries, vars, bags, steps};
+}
+
+function nameOf(m,id){ const e=m.entries.find(x=>x.id===id); if(e) return e.name; const v=m.vars.find(x=>x.id===id); return v?v.name:id; }
+function valueOf(m,id,depth){
+  depth=depth||0; if(depth>5) return null;
+  const e=m.entries.find(x=>x.id===id); if(e) return e.value;
+  const v=m.vars.find(x=>x.id===id); if(!v) return null;
+  let b=valueOf(m,v.de,depth+1); if(b===null) b=0;
+  const f=num(v.fx);
+  if(v.op==='+') return b+f; if(v.op==='-') return b-f; if(v.op==='*') return b*f; if(v.op==='/') return f? b/f : b;
+  return b;
+}
+function varDef(m,v){ const d=nameOf(m,v.de); return v.op? d+' '+v.op+' '+v.fx : d; }
+// a number, or the id of a variable -> {value, label}
+function qty(m,raw,unit){
+  if(raw===''||raw==null) return {value:0,label:''};
+  const v=valueOf(m,raw);
+  if(v!==null){ return {value:v,label:nameOf(m,raw)+' = '+fmtNum(v)+(unit?' '+unit:'')}; }
+  return {value:num(raw),label:''};
+}
+
+function calc(m,st){
+  const vol=qty(m,st.volRaw,'mL'), dur=qty(m,st.durRaw,'s'), rdur=qty(m,st.rDurRaw,'s');
+  const path=!!(st.from&&st.to);
+  const pumpOn=path&&st.rate>0&&(vol.value>0||dur.value>0);
+  let moved=0,time=0,basis='none';
+  if(pumpOn){
+    if(vol.value>0){ moved=vol.value; time=moved/st.rate*60; basis='volume'; }
+    else { time=dur.value; moved=st.rate*time/60; basis='pump duration'; }
+  } else if(rdur.value>0){ time=rdur.value; basis='rocker duration'; }
+  if(time===0){ const t=st.trig.find(x=>x.type.toLowerCase()==='timer'&&num(x.target)>0); if(t){ time=num(t.target); basis='timer'; } }
+  return {vol,dur,rdur,path,pumpOn,moved,time,basis};
+}
+
+function bubbleInfo(t){
+  const s=t.sub.toLowerCase().replace(/[\s_]/g,'');
+  const stop = s.indexOf('wettodry')>=0 ? 'dry' : (s.indexOf('drytowet')>=0 ? 'wet' : '');
+  const raw=t.sub.toLowerCase();
+  const sensors = raw.indexOf('_both')>=0 ? [1,2] : (/_2\b/.test(raw)? [2] : [1]);
+  return {stop,sensors};
+}
+
+// trigger text for the detail panel
+function triggerList(m,st,c){
+  const out=[]; let hasTimer=false;
+  st.trig.forEach(t=>{
+    if(t.type.toLowerCase()==='timer'){
+      hasTimer=true;
+      let txt;
+      if(t.target) txt='Timer: '+t.target+' '+(t.unit||'');
+      else if(c.dur.label) txt='Timer: '+c.dur.label;
+      else if(c.time>0) txt='Timer: '+fmtTime(c.time);
+      else txt='Timer';
+      out.push({kind:'timer',text:txt});
+    } else if(t.type.toLowerCase().indexOf('bubble')>=0){
+      const b=bubbleInfo(t);
+      const which=b.sensors.length===2?'both sensors':'sensor '+b.sensors[0];
+      out.push({kind:'bs',text:'Bubble sensor ('+which+'): '+(b.stop?'stop when '+b.stop:t.sub),sensors:b.sensors,raw:t.sub});
+    } else out.push({kind:'other',text:t.type+(t.sub?': '+t.sub:'')});
+  });
+  if(!hasTimer && c.pumpOn && c.basis==='pump duration')
+    out.push({kind:'timer',text:'Timer: '+(c.dur.label||fmtTime(c.time))+' (from pump duration)'});
+  return out;
+}
+
+function lineLabel(m,k){ const b=m.bags[k]; if(!b) return ''; return b.label||b.desc||''; }
+function trunc(s,n){ s=String(s); return s.length>n? s.slice(0,n-1)+'\u2026' : s; }
+
+
+// ---------- kit layouts (drawn like the instrument's own fluid-path screen) ----------
+// coordinates below are in "figure units"; tp() scales them into the drawing
+const TX=20, TY=125, SC=1.4;
+const tp=(x,y)=>[TX+SC*x, TY+SC*y];
+const tpp=pts=>pts.map(p=>tp(p[0],p[1]));
+
+const KITS={
+  iso:{ id:'iso', name:'Cell isolation kit', w:760, h:700, bpY:365, bpX0:85, bpX1:465, pump:[200,365], s1:[140,365], s2:{line:'A',pos:[40,150]},
+    bigBag:'A',
+    joints:[[85,235,'cross'],[185,180],[300,148],[365,148],[365,278],[255,180]],
+    lines:{
+      A:{box:[40,95],cap:[40,20],route:[[40,20],[40,235],[85,235],[85,365]]},
+      B:{box:[85,95],cap:[85,20],route:[[85,20],[85,365]]},
+      K:{air:1,box:[170,235],cap:[225,235],filter:'v',route:[[225,235],[85,235],[85,365]]},
+      C:{box:[133,95],cap:[130,20],route:[[130,20],[130,150],[160,180],[250,180],[255,200],[255,365]]},
+      D:{box:[185,95],cap:[185,20],route:[[185,20],[185,180],[250,180],[255,200],[255,365]]},
+      E:{box:[237,95],cap:[237,20],route:[[237,20],[237,130],[255,148],[365,148],[365,365]]},
+      F:{box:[300,95],cap:[300,20],route:[[300,20],[300,148],[365,148],[365,365]]},
+      G:{box:[365,95],cap:[365,20],route:[[365,20],[365,365]]},
+      H:{box:[428,95],cap:[428,20],route:[[428,20],[428,130],[413,148],[365,148],[365,365]]},
+      J:{air:1,box:[312,235],cap:[312,180],filter:'h',route:[[312,180],[312,262],[330,278],[365,278],[365,365]]},
+      I:{box:[465,235],cap:[492,20],route:[[492,20],[492,70],[465,110],[465,365]]}
+    } },
+  bead:{ id:'bead', name:'Bead removal kit', w:640, h:705, bpY:358, bpX0:45, bpX1:335, pump:[175,358], s1:[115,358], s2:{line:'A',pos:[35,200]},
+    bag:{x0:12,x1:98,y0:-44,y1:8,label:'Bead removal bag',key:'A',arc:[[75,20],[75,-6],[35,-6],[35,20]]},
+    joints:[[75,165],[335,330,'cross']],
+    lines:{
+      A:{box:[35,95],cap:[35,20],route:[[35,20],[35,335],[45,358]]},
+      B:{box:[75,95],cap:[75,20],route:[[75,20],[75,165]],viaBag:1},
+      D:{box:[165,95],cap:[165,20],route:[[165,20],[165,150],[150,165],[75,165]],viaBag:1},
+      E:{box:[210,95],cap:[210,20],route:[[210,20],[210,190],[195,208],[90,208],[75,195],[75,165]],viaBag:1},
+      G:{box:[335,95],cap:[335,20],route:[[335,20],[335,330],[335,358]]},
+      H:{box:[385,95],cap:[385,20],route:[[385,20],[385,290],[365,322],[335,330],[335,358]]},
+      J:{air:1,box:[278,215],cap:[275,170],filter:'h',route:[[275,170],[275,300],[295,325],[335,330],[335,358]]}
+    } }
+};
+
+// full route from a line's cap to the common path under the pump (figure units)
+function upRoute(kit,L){
+  const ln=kit.lines[L]; if(!ln) return null;
+  if(!ln.viaBag) return ln.route.slice();
+  const A=kit.lines.A.route, B=kit.lines.B.route, arc=kit.bag.arc;
+  let r=[];
+  if(L!=='B') r=r.concat(ln.route).concat(B.slice().reverse());   // down to the junction, then up line B
+  else r=[B[0]];
+  return r.concat(arc.slice(1)).concat(A.slice(1));                // over the bag, down line A
+}
+function pathPts(kit,from,to){
+  const u=upRoute(kit,from), d=upRoute(kit,to); if(!u||!d) return null;
+  const j1=u[u.length-1], j2=d[d.length-1];
+  let pts=u.slice(); if(j1[0]!==j2[0]||j1[1]!==j2[1]) pts.push(j2);
+  pts=pts.concat(d.slice().reverse());
+  const px=kit.pump[0];
+  const viaPump=((j1[0]<px)!==(j2[0]<px));
+  return {pts:tpp(pts),viaPump,j1,j2};
+}
+function chevrons(pts,P,spacing){
+  let out='', carry=spacing/2;
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1], dx=b[0]-a[0], dy=b[1]-a[1], len=Math.hypot(dx,dy); if(len<1) continue;
+    const ang=Math.atan2(dy,dx)*180/Math.PI;
+    let t=carry;
+    while(t<len){ const x=a[0]+dx*t/len, y=a[1]+dy*t/len;
+      out+='<path transform="translate('+x.toFixed(1)+','+y.toFixed(1)+') rotate('+ang.toFixed(1)+')" d="M-4,-5 L2,0 L-4,5" fill="none" stroke="'+P.chev+'" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
+      t+=spacing; }
+    carry=t-len;
+  }
+  return out;
+}
+function polyD(pts){ return pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '); }
+
+// ---------- bags: which physical bag each line belongs to, and a step-by-step volume ledger ----------
+function kitOf(m){ return guessKit(m); }
+function usedLines(m){ const u=new Set(); m.steps.forEach(s=>{ if(s.from) u.add(s.from); if(s.to) u.add(s.to); }); return u; }
+function guessKit(m){
+  const s=(m.ptype+' '+m.name).toLowerCase();
+  if(/bead/.test(s)) return 'bead';
+  if(/isol/.test(s)) return 'iso';
+  const u=usedLines(m); const beadSet='ABDEGHJ'.split('');
+  const onlyBead=u.size>0 && [...u].every(x=>beadSet.indexOf(x)>=0);
+  return onlyBead && !('CFIK'.split('').some(x=>m.bags[x]&&(m.bags[x].label||m.bags[x].start))) ? 'bead' : 'iso';
+}
+function bagKeyFn(m,kitId){
+  const key={};
+  Object.keys(m.bags).forEach(k=>{ key[k]=k; });
+  Object.keys(m.bags).forEach(k=>{ const s=m.bags[k].second; if(s) key[s]=k; });
+  if(kitId==='bead'){ const explicit=Object.keys(m.bags).some(k=>m.bags[k].second==='B'||m.bags[k].second==='A'); if(!explicit) key.B='A'; }
+  return L=> (!L||L==='J'||L==='K')? null : (key[L]||L);
+}
+function bagParam(m,k,field){ const e=m.bagEdit[k]; if(e&&e[field]!==undefined) return e[field]; const b=m.bags[k]; return b? b[field]||0 : 0; }
+function bagName(m,k){ const b=m.bags[k]; return (b&&(b.label||b.desc))||''; }
+
+function capOf(m,k,kitId){
+  const c=bagParam(m,k,'cap'); if(c>0) return {v:c,src:''};
+  if(kitId==='iso'&&k==='A') return {v:1000,src:'kit spec'};      // user guide: max capacity of the isolation bag
+  return {v:0,src:''};
+}
+function computeLedger(m,kitId,noLimit){
+  const kf=bagKeyFn(m,kitId), used=usedLines(m);
+  const keys=[]; used.forEach(L=>{ const k=kf(L); if(k&&keys.indexOf(k)<0) keys.push(k); }); keys.sort();
+  const bal={}, low={}, peak={}, air={}, airSteps={}, peakTot={};
+  keys.forEach(k=>{ bal[k]=bagParam(m,k,'start'); low[k]=bal[k]; peak[k]=bal[k]; air[k]=0; airSteps[k]=[]; peakTot[k]=bal[k]; });
+  const steps=[], dryOut={}; let sensor=m.simStart, total=0;
+  m.steps.forEach((s,i)=>{
+    const c=calc(m,s), src=kf(s.from), dst=kf(s.to), notes=[];
+    const fromAir=(s.from==='J'||s.from==='K');
+    const R=c.pumpOn? c.moved : 0;
+    const dryStop=s.trig.some(t=>t.type.toLowerCase().indexOf('bubble')>=0 && bubbleInfo(t).stop==='dry');
+    const wetStop=s.trig.some(t=>t.type.toLowerCase().indexOf('bubble')>=0 && bubbleInfo(t).stop==='wet');
+    const before=src? bal[src] : 0;
+    let moved=R;
+    if(dryStop && src) dryOut[src]=true;
+    if(!noLimit && dryStop && src && before>0 && R>before){ moved=before; notes.push({lvl:'warn',text:'Ends early: bag '+src+' runs dry after '+fmtNum(before)+' of '+fmtNum(R)+' mL.'}); }
+    else if(!noLimit && src && R>before+0.001){ notes.push({lvl:'err',text:'Bag '+src+' is short by '+fmtNum(R-before)+' mL for this step.'}); }
+    const time = (c.pumpOn && s.rate>0)? moved/s.rate*60 : c.time;
+    const sBefore=sensor, stop=dryStop?'Dry':(wetStop?'Wet':'');
+    let sAfter=sBefore;
+    if(stop) sAfter=stop; else if(moved>0 && src) sAfter='Wet'; else if(moved>0 && fromAir) sAfter='Dry';
+    if(stop && stop===sBefore) notes.push({lvl:'warn',text:'Bubble sensor is already '+stop.toLowerCase()+': "stop when '+stop.toLowerCase()+'" would end this step at once.'});
+    sensor=sAfter;
+    if(src&&dst&&src!==dst){ bal[src]-=moved; bal[dst]+=moved; }
+    else if(src&&!dst){ bal[src]-=moved; }
+    else if(dst&&!src&&!fromAir){ bal[dst]+=moved; }
+    if(fromAir&&dst&&moved>0){ air[dst]+=moved; if(airSteps[dst].indexOf(s.n)<0) airSteps[dst].push(s.n); }   // air pushed into a bag
+    keys.forEach(k=>{ if(bal[k]<low[k]) low[k]=bal[k]; if(bal[k]>peak[k]) peak[k]=bal[k];
+      const tot=bal[k]+(m.countAir? air[k] : 0); if(tot>peakTot[k]) peakTot[k]=tot; });
+    total+=time;
+    steps.push({i,src,dst,R,moved,time,before,after:Object.assign({},bal),notes,sBefore,sAfter});
+  });
+  const bags={};
+  keys.forEach(k=>{ const start=bagParam(m,k,'start'), cp=capOf(m,k,kitId), cap=cp.v, end=bal[k];
+    const needed=Math.max(0,start-low[k]);
+    const issues=[];
+    if(low[k]<-0.5) issues.push('Runs out');
+    if(cap>0){ if(peak[k]>cap+0.001) issues.push('Over capacity'); else if(m.countAir && peakTot[k]>cap+0.001) issues.push('Over capacity with air'); }
+    bags[k]={start,cap,capSrc:cp.src,low:low[k],peak:peak[k],end,needed,air:air[k],airSteps:airSteps[k],peakTotal:peakTot[k],
+             status:issues.length? issues.join(' + ') : 'OK', issues, name:bagName(m,k)}; });
+  return {steps,bags,keys,kf,total,dryOut};
+}
+
+// ---------- bag preparation sheet ----------
+function recommendedStart(b,margin){ if(b.needed<=0.05) return 0; return Math.ceil(b.needed*(1+margin/100)/5)*5; }
+function prepRows(m,kitId,L){
+  const kit=KITS[kitId], rows=[];
+  const Ln=computeLedger(Object.assign({},m,{bagEdit:{}}),kitId);   // recommendations come from the protocol's own start volumes, so they stay stable while you edit
+  L.keys.forEach(k=>{
+    const b=L.bags[k], lines=[k];
+    Object.keys(kit.lines).forEach(x=>{ if(x!==k && !kit.lines[x].air && L.kf(x)===k) lines.push(x); });
+    lines.sort();
+    rows.push({key:k, lines:lines.join(' + '), name:b.name, protocolStart:(m.bags[k]? m.bags[k].start : 0),
+      recommended:recommendedStart(Ln.bags[k],m.margin), recStar:!!L.dryOut[k], prepare:b.start, peakLiquid:b.peak, air:b.air, airSteps:b.airSteps,
+      peakTotal:b.peakTotal, cap:b.cap, capSrc:b.capSrc, end:b.end, status:b.status, needed:b.needed});
+  });
+  return rows;
+}
+function prepText(m,kitId,L){
+  const rows=prepRows(m,kitId,L), q=v=>String(Math.round(v*10)/10);
+  const out=['Bag preparation - '+m.name+' ('+KITS[kitId].name+')'];
+  out.push(['Connect to line','Bag','Protocol start (mL)','Recommended start (mL)','Prepare (mL)','Peak liquid (mL)','Air added (mL)',(m.countAir?'Peak incl. air (mL)':'Peak (mL)'),'Capacity (mL)','Check'].join('\t'));
+  rows.forEach(r=>out.push([r.lines,r.name,q(r.protocolStart),q(r.recommended)+(r.recStar?'*':''),q(r.prepare),q(r.peakLiquid),q(r.air),q(m.countAir?r.peakTotal:r.peakLiquid),r.cap>0? q(r.cap)+(r.capSrc?' ('+r.capSrc+')':'') : 'unknown',r.status].join('\t')));
+  return out.join('\n');
+}
+
+// ---------- the kit schematic (returns SVG text) ----------
+function bagIcon(m,k,x,yBottom,w,h,L,i,P,used){
+  // x = centre, yBottom = bottom edge; returns svg for a bag with its level
+  const b=L&&L.bags[k], st=i>=0&&L? L.steps[i] : null;
+  const bal= st&&b? st.after[k] : (b? b.start : 0);
+  const cap=b? b.cap : 0, peak=b? Math.max(b.peak,1):1;
+  const denom= cap>0? cap : peak;
+  const frac= Math.max(0,Math.min(1,bal/denom));
+  const err= b&&(bal<-0.5), over= b&&cap>0&&bal>cap+0.001;
+  const stroke= err? P.err : (over? P.dest : P.bagStroke), sw=(err||over)?3:2;
+  const y0=yBottom-h, inner=h-8;
+  let g='<g opacity="'+(used?1:0.35)+'">';
+  g+='<rect x="'+(x-w/2)+'" y="'+y0+'" width="'+w+'" height="'+h+'" rx="12" fill="'+P.bag+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+  if(b&&frac>0) g+='<rect x="'+(x-w/2+4)+'" y="'+(y0+4+inner*(1-frac))+'" width="'+(w-8)+'" height="'+(inner*frac)+'" rx="8" fill="'+P.fill+'" opacity="0.85"/>';
+  if(b){
+    const vtxt=(Math.round(bal*10)/10)+' mL';
+    g+='<text x="'+x+'" y="'+(y0+h/2+4)+'" font-size="'+(w>70?14:12)+'" font-weight="700" text-anchor="middle" fill="'+(err?P.err:P.ink)+'">'+vtxt+'</text>';
+    if(cap>0) g+='<text x="'+x+'" y="'+(y0+h/2+18)+'" font-size="9" text-anchor="middle" fill="'+P.muted+'">of '+fmtNum(cap)+'</text>';
+    if(st && (k===st.src||k===st.dst) && st.moved>0 && st.src!==st.dst){
+      const isSrc=(k===st.src);
+      g+='<text x="'+x+'" y="'+(y0+h-8)+'" font-size="11" font-weight="700" text-anchor="middle" fill="'+(isSrc?P.accent:P.dest)+'">'+(isSrc?'\u2212':'+')+fmtNum(st.moved)+'</text>';
+    }
+  }
+  g+='</g>';
+  return g;
+}
+
+function kitSvg(m,idx,P,kitId,L){
+  P=Object.assign({chev:'var(--chev)',tube:'var(--tube)',fill:'var(--fill)',err:'var(--err)'},P||PAL);
+  kitId=kitId||guessKit(m); const kit=KITS[kitId];
+  L=L||computeLedger(m,kitId);
+  const st=idx>=0? m.steps[idx] : null, c=st? calc(m,st) : null;
+  const used=usedLines(m), kf=L.kf;
+  const viaBagUsed=()=>kit.bag && ['A','B','D','E'].some(x=>used.has(x));
+  const lineUsed=k=>{ if(used.has(k)) return true; if(kit.bag && (k==='A'||k==='B') && viaBagUsed()) return true; const bk=kf(k); if(!bk) return false; return Object.keys(kit.lines).some(o=>kf(o)===bk && used.has(o)); };
+  let g='';
+  const tubeP=pts=>'<path d="'+polyD(tpp(pts))+'" fill="none" stroke="'+P.tube+'" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>';
+  // base tubes: unused lines are drawn fainter
+  Object.keys(kit.lines).forEach(k=>{ g+='<g opacity="'+(lineUsed(k)?1:0.45)+'">'+tubeP(kit.lines[k].route)+'</g>'; });
+  g+=tubeP([[kit.bpX0,kit.bpY],[kit.bpX1,kit.bpY]]);
+  // junction connectors
+  (kit.joints||[]).forEach(j=>{ const p=tp(j[0],j[1]);
+    g+= j[2]==='cross' ? '<rect x="'+(p[0]-9)+'" y="'+(p[1]-9)+'" width="18" height="18" rx="4" fill="'+P.bagStroke+'"/>' : '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="5" fill="'+P.bagStroke+'"/>'; });
+  // air filters
+  Object.keys(kit.lines).forEach(k=>{ const ln=kit.lines[k]; if(!ln.air) return; const p=tp(ln.cap[0],ln.cap[1]);
+    g+='<g opacity="'+(lineUsed(k)?1:0.45)+'">'+( ln.filter==='h' ? '<rect x="'+(p[0]-13)+'" y="'+(p[1]-8)+'" width="26" height="8" rx="2" fill="'+P.bagStroke+'"/>'
+                        : '<rect x="'+(p[0]-1)+'" y="'+(p[1]-14)+'" width="8" height="28" rx="2" fill="'+P.bagStroke+'"/>')+'</g>'; });
+  // bags with names, levels and errors
+  if(kit.bag){
+    const b=kit.bag, p0=tp(b.x0,b.y0), p1=tp(b.x1,b.y1), cx=(p0[0]+p1[0])/2;
+    g+='<g opacity="'+((lineUsed('A')||lineUsed('B'))?1:0.45)+'">'+tubeP(b.arc)+'</g>';
+    g+=bagIcon(m,b.key,cx,p1[1],p1[0]-p0[0],p1[1]-p0[1],L,idx,P,viaBagUsed()||lineUsed('A')||lineUsed('B'));
+    const nm=bagName(m,'A')||b.label;
+    g+='<text x="'+cx+'" y="'+(p0[1]-8)+'" font-size="13" font-weight="700" text-anchor="middle" fill="'+P.ink+'" opacity="'+((lineUsed('A')||lineUsed('B'))?1:0.45)+'"><title>'+esc(nm)+'</title>'+esc(trunc(nm,18))+'</text>';
+  }
+  Object.keys(kit.lines).forEach(k=>{ const ln=kit.lines[k]; if(ln.air) return; const p=tp(ln.cap[0],ln.cap[1]);
+    if(kit.bag && (k==='A'||k==='B')) return;
+    const u=lineUsed(k), bk=kf(k), second=(bk&&bk!==k);
+    g+='<g opacity="'+(u?1:0.45)+'"><rect x="'+(p[0]-8)+'" y="'+(p[1]-7)+'" width="16" height="6" rx="2" fill="'+P.bagStroke+'"/><rect x="'+(p[0]-2.5)+'" y="'+(p[1]-2)+'" width="5" height="9" fill="'+P.bagStroke+'"/></g>';
+    const big=(kit.bigBag===k), w=big?70:60, h=big?92:66, yb=p[1]-10, cx=big? p[0]-8 : p[0];
+    if(second){
+      g+='<text x="'+cx+'" y="'+(yb-14)+'" font-size="10" text-anchor="middle" fill="'+P.muted+'">same bag as '+esc(bk)+'</text>';
+    } else {
+      g+=bagIcon(m,bk||k,cx,yb,w,h,L,idx,P,u);
+    }
+    const nm=bagName(m,bk||k);
+    if(!second) g+='<text x="'+cx+'" y="'+(yb-h-7)+'" font-size="11" font-weight="700" text-anchor="middle" fill="'+P.ink+'" opacity="'+(u?1:0.45)+'"><title>'+esc(nm)+'</title>'+esc(trunc(nm,big?16:10))+'</text>';
+  });
+  // highlighted path with (fewer) flow chevrons
+  let pi=null; if(st && c.path){ pi=pathPts(kit,st.from,st.to); }
+  if(pi){
+    g+='<path d="'+polyD(pi.pts)+'" fill="none" stroke="'+P.flow+'" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>';
+    g+=chevrons(pi.pts,P,70);
+  }
+  // pump (on top of the path)
+  const pp=tp(kit.pump[0],kit.pump[1]), on=!!(c&&c.pumpOn);
+  g+='<circle cx="'+pp[0]+'" cy="'+pp[1]+'" r="24" fill="'+P.panel+'" stroke="'+(on?P.accent:P.bagStroke)+'" stroke-width="'+(on?5:3)+'"/>';
+  g+='<text x="'+pp[0]+'" y="'+(pp[1]+4)+'" font-size="11" font-weight="700" text-anchor="middle" fill="'+P.ink+'">Pump</text>';
+  g+='<text x="'+pp[0]+'" y="'+(pp[1]+44)+'" font-size="11" text-anchor="middle" fill="'+P.ink+'">'+(st&&st.rate>0&&on? fmtNum(st.rate)+' mL/min' : '')+'</text>';
+  // bubble sensors: S1 just left of the pump, S2 on line A (both kits)
+  const act=new Set(); const trigs=st? triggerList(m,st,c):[];
+  trigs.forEach(t=>{ if(t.kind==='bs') t.sensors.forEach(s=>act.add(s)); });
+  const s1=tp(kit.s1[0],kit.s1[1]), s2=tp(kit.s2.pos[0],kit.s2.pos[1]);
+  [[1,s1],[2,s2]].forEach(a=>{ const on2=act.has(a[0]), q=a[1];
+    g+='<circle cx="'+q[0]+'" cy="'+q[1]+'" r="12" fill="'+P.panel+'" stroke="'+(on2?P.blue:P.bagStroke)+'" stroke-width="'+(on2?4:2)+'"/>';
+    g+='<text x="'+q[0]+'" y="'+(q[1]+4)+'" font-size="10" font-weight="700" text-anchor="middle" fill="'+(on2?P.blue:P.muted)+'">S'+a[0]+'</text>'; });
+  g+='<text x="'+s1[0]+'" y="'+(s1[1]+30)+'" font-size="9" text-anchor="middle" fill="'+P.muted+'">bubble sensor 1</text>';
+  g+='<text x="'+(s2[0]+16)+'" y="'+(s2[1]+4)+'" font-size="9" fill="'+P.muted+'">bubble sensor 2 (line A)</text>';
+  // line boxes (on top)
+  Object.keys(kit.lines).forEach(k=>{ const ln=kit.lines[k], p=tp(ln.box[0],ln.box[1]);
+    const isFrom=st&&k===st.from, isTo=st&&k===st.to, known=lineUsed(k);
+    const fill=isFrom?P.accent:(isTo?P.dest:P.panel), txt=(isFrom||isTo)?'#ffffff':P.accent;
+    g+='<g opacity="'+(known?1:0.4)+'"><rect x="'+(p[0]-17)+'" y="'+(p[1]-15)+'" width="34" height="30" rx="7" fill="'+fill+'" stroke="'+(isFrom?P.accent:(isTo?P.dest:P.accent))+'" stroke-width="2"/>'
+      +'<text x="'+p[0]+'" y="'+(p[1]+6)+'" font-size="17" font-weight="700" text-anchor="middle" fill="'+txt+'">'+k+'</text></g>';
+    if(isFrom||isTo){ const col=isFrom?P.accent:P.dest;
+      g+='<rect x="'+(p[0]-19)+'" y="'+(p[1]+19)+'" width="38" height="14" rx="7" fill="'+P.panel+'" stroke="'+col+'" stroke-width="1.5"/><text x="'+p[0]+'" y="'+(p[1]+30)+'" font-size="9" font-weight="700" text-anchor="middle" fill="'+col+'">'+(isFrom?'FROM':'TO')+'</text>'; }
+  });
+  const note = (pi && !pi.viaPump) ? '<text x="10" y="'+(kit.h-10)+'" font-size="11" fill="'+P.dest+'">This pair of lines does not pass through the pump.</text>' : '';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+kit.w+' '+kit.h+'" role="img" aria-label="'+kit.name+'">'+g+note+'</svg>';
+}
+
+// ---------- rocker and magnet (graphic only; the numbers are shown next to it) ----------
+function rockerSvg(st,P){
+  P=Object.assign({},PAL,P||{});
+  if(!st) return '';
+  const ang=st.angEnd, a0=st.angStart, mg=st.magnet;
+  let g='<g transform="translate(150,78)">';
+  if(st.rocking&&a0!==null) g+='<g transform="rotate('+(-a0)+')" opacity="0.3"><rect x="-110" y="-7" width="220" height="14" rx="4" fill="'+P.bagStroke+'"/></g>';
+  g+='<g transform="rotate('+(-ang)+')"><rect x="-110" y="-7" width="220" height="14" rx="4" fill="'+P.bagStroke+'"/><rect x="-90" y="-30" width="180" height="23" rx="9" fill="'+P.bag+'" stroke="'+P.bagStroke+'" stroke-width="2"/></g>';
+  g+='<polygon points="-14,42 14,42 0,8" fill="'+P.muted+'" opacity="0.6"/>';
+  g+= mg ? '<rect x="-34" y="16" width="68" height="20" rx="4" fill="'+P.ok+'"/><text x="0" y="30" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">MAGNET</text>'
+         : '<rect x="-34" y="52" width="68" height="20" rx="4" fill="none" stroke="'+P.bagStroke+'" stroke-width="2" stroke-dasharray="5 4"/><text x="0" y="66" font-size="11" text-anchor="middle" fill="'+P.muted+'">MAGNET</text>';
+  g+='</g>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 160" role="img" aria-label="Rocker and magnet">'+g+'</svg>';
+}
+
+// ---------- overview rows, comparison, export helpers ----------
+function stepName(s){ return s.label||s.desc||('Step '+s.n); }
+const ROW_COLS=['Step','Name','Path','Pump','Flow rate','Time','Triggers','Rocker','Magnet','Prompt'];
+function pathText(m,s){ if(!(s.from&&s.to)) return ''; const nm=k=>k+(lineLabel(m,k)? ' ('+lineLabel(m,k)+')' : ''); return nm(s.from)+' \u2192 '+nm(s.to); }
+function stepRows(m,kitId,L){
+  L=L||computeLedger(m,kitId);
+  return m.steps.map((s,i)=>{
+    const c=calc(m,s), ls=L.steps[i];
+    let pump='';
+    if(c.pumpOn){ const p=[]; if(c.vol.value>0) p.push(c.vol.label||(fmtNum(c.vol.value)+' mL')); if(c.dur.value>0) p.push('for '+(c.dur.label||(fmtNum(c.dur.value)+' s')));
+      pump=p.join(', '); if(ls.moved<c.moved-0.001) pump+=' (moves '+fmtNum(ls.moved)+' mL)'; }
+    const rocker=(s.rocking? 'Rocking '+(s.angStart!==null? s.angStart+'\u00B0 \u2194 ':'')+s.angEnd+'\u00B0, '+fmtNum(s.rpm)+' CPM' : 'Static '+s.angEnd+'\u00B0')+(c.rdur.value>0? ' \u00B7 '+(c.rdur.label||fmtNum(c.rdur.value)+' s') : '');
+    const cells=[s.n, stepName(s), pathText(m,s), pump, (c.pumpOn&&s.rate>0)? fmtNum(s.rate)+' mL/min' : '', ls.time>0? fmtTime(ls.time) : '',
+      triggerList(m,s,c).map(t=>t.text).join('; '), rocker, s.magnet?'On':'Off', s.prompt.on? (s.prompt.msg||'(prompt)') : ''];
+    return {i, cells, warn:ls.notes.length>0, notes:ls.notes};
+  });
+}
+function toCSV(rows){ return rows.map(r=>r.map(v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }).join(',')).join('\r\n'); }
+function toTSV(rows){ return rows.map(r=>r.map(v=>String(v==null?'':v).replace(/[\t\r\n]+/g,' ')).join('\t')).join('\n'); }
+
+// order-preserving alignment of two step lists (longest common subsequence of the step names).
+// kind: M = same step in both, E = edited / renamed pair, A = only in A, B = only in B
+function alignSteps(kA,kB){
+  const nA=kA.length, nB=kB.length, T=[];
+  for(let i=0;i<=nA+1;i++){ T.push(new Array(nB+2).fill(0)); }
+  for(let i=nA;i>=1;i--) for(let j=nB;j>=1;j--){
+    if(kA[i-1]===kB[j-1]) T[i][j]=T[i+1][j+1]+1; else T[i][j]=Math.max(T[i+1][j],T[i][j+1]); }
+  const seq=[]; let rA=[], rB=[];
+  const flush=()=>{ const p=Math.min(rA.length,rB.length);
+    for(let k=0;k<p;k++) seq.push({t:'E',a:rA[k],b:rB[k]});
+    for(let k=p;k<rA.length;k++) seq.push({t:'A',a:rA[k],b:-1});
+    for(let k=p;k<rB.length;k++) seq.push({t:'B',a:-1,b:rB[k]});
+    rA=[]; rB=[]; };
+  let i=1, j=1;
+  while(i<=nA||j<=nB){
+    if(i<=nA&&j<=nB&&kA[i-1]===kB[j-1]){ flush(); seq.push({t:'M',a:i-1,b:j-1}); i++; j++; }
+    else if(j>nB){ rA.push(i-1); i++; }
+    else if(i>nA){ rB.push(j-1); j++; }
+    else if(T[i+1][j]>=T[i][j+1]){ rA.push(i-1); i++; }
+    else { rB.push(j-1); j++; }
+  }
+  flush();
+  return seq;
+}
+function compareProtocols(pa,pb){
+  const ra=stepRows(pa.M,pa.kitId), rb=stepRows(pb.M,pb.kitId);
+  const key=r=>String(r.cells[1]).toLowerCase().trim();
+  const seq=alignSteps(ra.map(key),rb.map(key));
+  const out=[], counts={same:0,changed:0,edited:0,onlyA:0,onlyB:0}, changes=[];
+  seq.forEach(q=>{
+    const a=q.a>=0? ra[q.a] : null, b=q.b>=0? rb[q.b] : null;
+    const diff=[];
+    if(a&&b){ for(let c=2;c<ROW_COLS.length;c++){ if(a.cells[c]!==b.cells[c]) diff.push(c); } }
+    let status;
+    if(q.t==='M'){ if(diff.length){ status='Changed ('+diff.length+')'; counts.changed++; } else { status='Same'; counts.same++; } }
+    else if(q.t==='E'){ if(a.cells[1]!==b.cells[1]) diff.unshift(1); status='Edited / replaced ('+diff.length+')'; counts.edited++; }
+    else if(q.t==='A'){ status='Only in A'; counts.onlyA++; } else { status='Only in B'; counts.onlyB++; }
+    if(a&&b) diff.forEach(c=>changes.push('Step '+b.cells[0]+' ('+b.cells[1]+') - '+ROW_COLS[c]+': '+(a.cells[c]||'(none)')+' \u2192 '+(b.cells[c]||'(none)')));
+    else if(a) changes.push('Only in A: step '+a.cells[0]+' ('+a.cells[1]+')'); else changes.push('Only in B: step '+b.cells[0]+' ('+b.cells[1]+')');
+    out.push({t:q.t,status,a,b,diff});
+  });
+  return {rows:out,counts,changes};
+}
+function infoRows(m,kitId){
+  const md=m.meta||{}, skip=',FileName,RecipeType,DateTimeCreated,LastDateTimeEdited,LastRunDatetime,LastRunDuration,Checksum,NameChecksum,TimeStamp,';
+  const pref=['ProtocolName','ProtocolType','Author','SchemaVersion','SavedVersion','FirstCreatedVersion','NumberOfSteps','DateCreated','DateSaved','ExperimentName','CreatedBy','ProgrammedBy','Username','LongDescription'];
+  const rows=[], done={};
+  const val=v=>(v===null||v===undefined||typeof v==='object')? '' : String(v);
+  pref.forEach(k=>{ done[k]=1; const v=val(md[k]); if(v!=='') rows.push([k,v]); else if(k==='SchemaVersion') rows.push([k,'(not in file)']); });
+  Object.keys(md).forEach(k=>{ if(!done[k]&&skip.indexOf(','+k+',')<0){ const v=val(md[k]); if(v!=='') rows.push([k,v]); } });
+  [m.fixed,m.run].forEach(d=>Object.keys(d||{}).forEach(k=>{ const v=val(d[k]); if(v!=='') rows.push([k,v]); }));
+  rows.push(['Kit layout',KITS[kitId].name]);
+  return rows;
+}
+
+// </logic>
+</script>
+<script id="ui">
+const P=[];                       // opened protocols: {id,label,M,cur,kitId,view}
+let M=null, cur=0, kitId='iso', L=null, active=-1, nextId=1, view='steps';
+const $=id=>document.getElementById(id);
+function showMsg(t){ $('msg').textContent=t||''; }
+
+// ---------- opening files ----------
+function addProtocol(text,label){
+  let root;
+  try{ root=JSON.parse(text.replace(/^\uFEFF/,'')); }catch(e){ showMsg((label||'File')+': not valid JSON ('+e.message+').'); return false; }
+  const m=parseProtocol(root);
+  if(m.kind==='rotea'){ showMsg((label||'File')+': this is a Rotea protocol. The viewer handles DynaCellect protocols only for now.'); return false; }
+  if(m.kind!=='dyna'){ showMsg((label||'File')+': this does not look like a DynaCellect protocol file.'); return false; }
+  let name=label||m.name, n=2; const base=name;
+  while(P.some(p=>p.label===name)) name=base+' ('+(n++)+')';
+  P.push({id:nextId++,label:name,M:m,cur:0,kitId:guessKit(m),view:'steps'});
+  return true;
+}
+function openFiles(files){
+  const list=[...files]; if(!list.length) return; showMsg('');
+  let pending=list.length, okCount=0;
+  list.forEach(f=>{ const r=new FileReader();
+    r.onload=()=>{ if(addProtocol(r.result,f.name.replace(/\.json$/i,''))) okCount++; if(--pending===0&&okCount) activate(P.length-1); else if(pending===0) renderTabs(); };
+    r.onerror=()=>{ showMsg('Could not read '+f.name); if(--pending===0&&okCount) activate(P.length-1); };
+    r.readAsText(f); });
+}
+function loadText(text,label){ if(addProtocol(text,label)){ showMsg(''); activate(P.length-1); } }
+
+// ---------- tabs ----------
+function saveActive(){ if(active>=0&&P[active]){ P[active].cur=cur; P[active].view=view; } }
+function activate(i){
+  saveActive(); active=i;
+  $('app').classList.remove('hide'); $('drop').classList.add('hide');
+  if(i==='compare'){ renderTabs(); setView('compare'); return; }
+  const p=P[i]; M=p.M; cur=p.cur; kitId=p.kitId; view=p.view||'steps';
+  $('pinfo').textContent=p.label+' \u00B7 '+M.steps.length+' steps'+(M.schema? ' \u00B7 schema '+M.schema : '')+(M.author? ' \u00B7 '+M.author : '');
+  $('kitname').textContent='\u00B7 '+KITS[kitId].name;
+  $('sensorStart').value=M.simStart; $('margin').value=M.margin; $('countAir').checked=M.countAir;
+  L=computeLedger(M,kitId);
+  buildInputs(); buildBags(); buildList(); renderTabs(); setView(view);
+}
+function renderTabs(){
+  const t=$('tabs'); t.innerHTML='';
+  P.forEach((p,i)=>{ const d=document.createElement('div'); d.className='tab'+(active===i?' on':''); d.title=p.label;
+    d.innerHTML='<span class="lbl">'+esc(p.label)+'</span><span class="x" title="Close this protocol">\u00D7</span>';
+    d.addEventListener('click',e=>{ if(e.target.classList.contains('x')){ closeProtocol(i); } else activate(i); }); t.appendChild(d); });
+  const c=document.createElement('div'); c.className='tab'+(active==='compare'?' on':''); c.innerHTML='<span class="lbl">Compare</span>';
+  c.addEventListener('click',()=>activate('compare')); t.appendChild(c);
+}
+function closeProtocol(i){
+  if(!confirm('Close "'+P[i].label+'"? Your edits to its data entries and bag volumes will be lost.')) return;
+  saveActive(); const wasCompare=(active==='compare');
+  P.splice(i,1);
+  if(!P.length){ active=-1; M=null; $('app').classList.add('hide'); $('drop').classList.remove('hide'); $('pinfo').textContent='Open one or more protocol .json files, or try the built-in example.'; return; }
+  if(wasCompare){ active='compare'; renderTabs(); setView('compare'); return; }
+  activate(Math.min(i,P.length-1));
+}
+function setView(v){
+  view=v; if(active!=='compare'&&P[active]) P[active].view=v;
+  const isCmp=(active==='compare');
+  $('subtabs').classList.toggle('hide',isCmp);
+  ['steps','overview','prep','info','compare'].forEach(n=>{ const id='v'+n.charAt(0).toUpperCase()+n.slice(1); $(id).classList.toggle('hide', n!==v); });
+  document.querySelectorAll('#subtabs .pill').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v==='compare') renderCompare(); else renderView();
+}
+function renderView(){
+  L=computeLedger(M,kitId);
+  if(view==='steps') renderAll(); else if(view==='overview') renderOverview(); else if(view==='prep') renderPrep(); else if(view==='info') renderInfo();
+}
+document.querySelectorAll('#subtabs .pill').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
+
+// ---------- steps view ----------
+function buildList(){
+  const box=$('steplist'); box.innerHTML='';
+  M.steps.forEach((s,i)=>{ const b=document.createElement('button'); b.className='row'; b.dataset.i=i; b.title=stepName(s);
+    b.innerHTML='<span class="n">'+esc(s.n)+'</span><span class="t">'+esc(stepName(s))+'</span><span class="fl bad hide" title="This step has a warning">!</span>'+(s.prompt.on?'<span class="fl" title="Prompt">prompt</span>':'');
+    b.addEventListener('click',()=>{cur=i;renderAll();}); box.appendChild(b); });
+}
+function buildInputs(){
+  const t=$('inputs'); t.innerHTML='';
+  $('inputsCard').classList.toggle('hide', M.entries.length===0);
+  M.entries.forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(e.name)+'</td><td><input type="number" step="any" min="'+e.min+'" max="'+e.max+'" value="'+e.value+'" data-id="'+esc(e.id)+'"></td><td>'+esc(e.units)+'</td><td class="note">'+e.min+' \u2013 '+e.max+'</td>';
+    t.appendChild(tr);
+  });
+  t.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{
+    const e=M.entries.find(x=>x.id===inp.dataset.id); e.value=num(inp.value); renderView(); }));
+  $('varsNote').innerHTML=M.vars.map(v=>'<div>'+esc(v.name)+' = '+esc(varDef(M,v))+(v.units? ' '+esc(v.units):'')+'</div>').join('');
+}
+function buildBags(){
+  const t=$('bags'); t.innerHTML='<tr><th>Bag</th><th>Start (mL)</th><th>Capacity</th><th>Now</th><th>Needs at start</th><th>Check</th></tr>';
+  L.keys.forEach(k=>{
+    const tr=document.createElement('tr'); tr.dataset.k=k;
+    tr.innerHTML='<td><b>'+esc(k)+'</b> <span class="note">'+esc(bagName(M,k))+'</span></td>'
+      +'<td><input type="number" step="any" data-k="'+esc(k)+'" data-f="start" value="'+bagParam(M,k,'start')+'"></td>'
+      +'<td><input type="number" step="any" data-k="'+esc(k)+'" data-f="cap" value="'+bagParam(M,k,'cap')+'" title="0 = unknown"></td>'
+      +'<td class="num" data-c="now"></td><td class="num" data-c="need"></td><td data-c="st"></td>';
+    t.appendChild(tr);
+  });
+  t.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{
+    const k=inp.dataset.k; M.bagEdit[k]=M.bagEdit[k]||{}; M.bagEdit[k][inp.dataset.f]=num(inp.value); renderView(); }));
+}
+function syncBagInputs(){ document.querySelectorAll('#bags input').forEach(inp=>{ inp.value=bagParam(M,inp.dataset.k,inp.dataset.f); }); }
+function updateBagCells(){
+  let bad=0;
+  L.keys.forEach(k=>{
+    const tr=document.querySelector('#bags tr[data-k="'+k+'"]'); if(!tr) return;
+    const b=L.bags[k], now=L.steps[cur].after[k];
+    tr.querySelector('[data-c=now]').textContent=fmtNum(now)+' mL';
+    tr.querySelector('[data-c=need]').textContent=b.needed>0.05? fmtNum(b.needed)+' mL' : '\u2013';
+    const st=tr.querySelector('[data-c=st]'); st.textContent=b.status; st.className=b.status==='OK'?'st-ok':'st-bad';
+    if(b.status!=='OK') bad++;
+  });
+  $('bagsum').textContent= bad? bad+' bag'+(bad>1?'s':'')+' need attention (the lowest level goes below zero, or the capacity is exceeded).' : 'All bags stay within their volumes for the whole protocol.';
+  $('bagsum').style.color= bad? 'var(--err)' : 'var(--ok)';
+}
+function renderAll(){
+  L=computeLedger(M,kitId);
+  $('kitsvg').innerHTML=kitSvg(M,cur,null,kitId,L);
+  $('rocker').innerHTML=rockerSvg(M.steps[cur]);
+  renderRocker();
+  document.querySelectorAll('#steplist .row').forEach((r,i)=>{ r.classList.toggle('cur',i===cur);
+    const bad=r.querySelector('.fl.bad'); if(bad) bad.classList.toggle('hide', L.steps[i].notes.length===0); });
+  const row=document.querySelector('#steplist .row.cur'); if(row&&row.scrollIntoView) row.scrollIntoView({block:'nearest'});
+  const tl=$('tl'); tl.innerHTML=''; const total=L.total;
+  M.steps.forEach((s,i)=>{ const d=document.createElement('div'); const t=L.steps[i].time; const w=Math.max(t,total*0.01);
+    d.style.flex=(w||1)+' 1 0'; d.className=(i===cur?'cur ':'')+(s.prompt.on?'pr':''); d.title='Step '+s.n+': '+fmtTime(t);
+    d.addEventListener('click',()=>{cur=i;renderAll();}); tl.appendChild(d); });
+  $('tltext').textContent='Estimated automatic time: '+fmtTime(total)+' (prompts and waiting for the user are not included)';
+  $('pos').textContent='Step '+(cur+1)+' of '+M.steps.length;
+  updateBagCells();
+  renderDetail();
+}
+function renderRocker(){
+  const s=M.steps[cur], t=L.steps[cur].time;
+  const rows=[['Magnet',s.magnet?'On':'Off'],['Rocking',s.rocking?'On':'Off'],
+    ['Angle', s.rocking&&s.angStart!==null? s.angStart+'\u00B0 \u2194 '+s.angEnd+'\u00B0' : s.angEnd+'\u00B0'],
+    ['Speed', s.rocking? fmtNum(s.rpm)+' CPM' : fmtNum(s.rpm)+' deg/s'],
+    ['Step duration', t>0? fmtHMS(t) : '\u2013']];
+  $('rockdl').innerHTML=rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+esc(r[1])+'</dd>').join('');
+}
+function fmtHMS(sec){ sec=Math.round(sec); const p=n=>String(n).padStart(2,'0'); return p(Math.floor(sec/3600))+':'+p(Math.floor(sec%3600/60))+':'+p(sec%60); }
+function renderDetail(){
+  const s=M.steps[cur], c=calc(M,s), kit=KITS[kitId], ls=L.steps[cur];
+  const nm=k=> k? (k+(lineLabel(M,k)? ' ('+esc(lineLabel(M,k))+')' : '')) : '';
+  let h='<h2>Step '+esc(s.n)+(s.label? ' \u00B7 '+esc(s.label):'')+'</h2><dl>';
+  let pathNote='';
+  if(c.path){ const pi=pathPts(kit,s.from,s.to);
+    if(!pi) pathNote='<div class="msgline warn">One of these lines is not in this kit layout.</div>';
+    else if(!pi.viaPump) pathNote='<div class="msgline warn">This pair of lines does not pass through the pump.</div>'; }
+  h+='<dt>Fluid path</dt><dd>'+(c.path? nm(s.from)+' \u2192 '+nm(s.to) : 'No liquid movement')+pathNote+'</dd>';
+  if(c.pumpOn){
+    let p=[]; if(c.vol.value>0) p.push('Volume '+fmtNum(c.vol.value)+' mL'+(c.vol.label? ' <span class="note">('+esc(c.vol.label)+')</span>':''));
+    if(c.dur.value>0) p.push('Duration '+fmtNum(c.dur.value)+' s'+(c.dur.label? ' <span class="note">('+esc(c.dur.label)+')</span>':''));
+    p.push('Flow rate '+fmtNum(s.rate)+' mL/min');
+    p.push((ls.moved<c.moved-0.001? 'Moves ':'\u2248 ')+fmtNum(ls.moved)+' mL'+(ls.moved<c.moved-0.001? ' (of '+fmtNum(c.moved)+' asked)':''));
+    h+='<dt>Pump</dt><dd>'+p.join('<br>')+'</dd>';
+  } else h+='<dt>Pump</dt><dd>Not pumping</dd>';
+  h+='<dt>Step time</dt><dd><span class="big">'+(ls.time>0? fmtTime(ls.time) : '\u2013')+'</span> <span class="note">'+(c.basis==='none'? 'not set':'from '+c.basis)+'</span></dd>';
+  const tl=triggerList(M,s,c);
+  h+='<dt>Triggers</dt><dd>'+(tl.length? tl.map(t=>'<span class="tag '+(t.kind==='bs'?'bs':'')+'">'+esc(t.text)+'</span>').join('') : '<span class="note">none</span>')+'</dd>';
+  if(ls.notes.length) h+='<dt>Checks</dt><dd>'+ls.notes.map(n=>'<div class="msgline '+(n.lvl==='err'?'err':'warn')+'">'+esc(n.text)+'</div>').join('')+'</dd>';
+  h+='<dt>Rocker</dt><dd>'+(s.rocking? 'Rocking '+(s.angStart!==null? s.angStart+'\u00B0 \u2194 ':'')+s.angEnd+'\u00B0, '+fmtNum(s.rpm)+' CPM' : 'Static, '+s.angEnd+'\u00B0')+(c.rdur.value>0? '<br>Rocker duration '+fmtNum(c.rdur.value)+' s'+(c.rdur.label? ' <span class="note">('+esc(c.rdur.label)+')</span>':''):'')+'</dd>';
+  if(s.prompt.on) h+='<dt>Prompt</dt><dd><span class="tag pr">Prompt</span> '+esc(s.prompt.msg||'(no message)')+'</dd>';
+  if(s.desc) h+='<dt>Description</dt><dd>'+esc(s.desc)+'</dd>';
+  h+='</dl>';
+  $('detail').innerHTML=h;
+}
+
+// ---------- overview ----------
+let ovRows=[];
+function renderOverview(){
+  ovRows=stepRows(M,kitId,L);
+  const f=$('ovFilter').value.toLowerCase().trim(), onlyW=$('ovWarn').checked;
+  const shown=ovRows.filter(r=>(!onlyW||r.warn)&&(!f||r.cells.join(' ').toLowerCase().indexOf(f)>=0));
+  let h='<tr>'+ROW_COLS.map(c=>'<th>'+c+'</th>').join('')+'<th></th></tr>';
+  shown.forEach(r=>{ h+='<tr class="click" data-i="'+r.i+'">'+r.cells.map(c=>'<td>'+esc(c)+'</td>').join('')+'<td>'+(r.warn?'<span class="warnmark" title="'+esc(r.notes.map(n=>n.text).join(' '))+'">!</span>':'')+'</td></tr>'; });
+  $('ovTable').innerHTML=h;
+  $('ovTable').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{ cur=+tr.dataset.i; setView('steps'); }));
+  const warns=ovRows.filter(r=>r.warn).length;
+  const noVol=L.keys.some(k=>L.bags[k].issues.indexOf('Runs out')>=0);
+  $('ovNote').textContent=shown.length+' of '+ovRows.length+' steps shown \u00B7 estimated automatic time '+fmtTime(L.total)+(warns? ' \u00B7 '+warns+' step(s) with warnings (!)'+(noVol? ' - many come from bags with no start volume; set them on the Bag preparation tab':''):'');
+}
+function ovExportRows(){ const rows=[ROW_COLS.slice()]; ovRows.forEach(r=>rows.push(r.cells)); return rows; }
+function download(name,text,type){ const b=new Blob([text],{type:type||'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} a.remove(); },500); }
+function copyText(txt,msgId){
+  const done=()=>{ $(msgId).textContent='Copied.'; setTimeout(()=>{$(msgId).textContent='';},2500); };
+  const fb=()=>{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){ $(msgId).textContent='Copy failed.'; } ta.remove(); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,fb); } else fb();
+}
+$('ovFilter').addEventListener('input',()=>{ if(M) renderOverview(); });
+$('ovWarn').addEventListener('change',()=>{ if(M) renderOverview(); });
+$('ovCopy').addEventListener('click',()=>{ if(M) copyText(toTSV(ovExportRows()),'ovMsg'); });
+$('ovCsv').addEventListener('click',()=>{ if(M) download((P[active].label||'protocol')+'_overview.csv','\uFEFF'+toCSV(ovExportRows()),'text/csv'); });
+
+// ---------- bag preparation ----------
+function renderPrep(){
+  const rows=prepRows(M,kitId,L), q=v=>fmtNum(v);
+  const des=M.entries.map(e=>e.name+' = '+fmtNum(e.value)+(e.units? ' '+e.units:'')).join('; ');
+  $('prepHead').innerHTML='<b>'+esc(P[active].label)+'</b> \u00B7 '+esc(KITS[kitId].name)+' \u00B7 prepared '+esc(new Date().toLocaleString())
+    +(des? '<br>Data entries: '+esc(des) : '')+'<br>Bubble sensor at start: '+esc(M.simStart)+' \u00B7 safety margin '+fmtNum(M.margin)+'% \u00B7 air '+(M.countAir? 'counted':'not counted');
+  let h='<tr><th>Connect to line</th><th>Bag</th><th>Protocol start</th><th>Recommended</th><th>Prepare</th><th>Peak liquid</th><th>Air added</th><th>'+(M.countAir?'Peak incl. air':'Peak')+'</th><th>Capacity</th><th>Check</th></tr>';
+  rows.forEach(r=>{ const pk=M.countAir? r.peakTotal : r.peakLiquid, over=r.cap>0&&pk>r.cap+0.001, bad=r.status!=='OK';
+    h+='<tr><td><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td>'
+      +'<td class="num">'+q(r.protocolStart)+' mL</td><td class="num">'+q(r.recommended)+' mL'+(r.recStar?'*':'')+'</td><td class="num"><b>'+q(r.prepare)+' mL</b></td>'
+      +'<td class="num">'+q(r.peakLiquid)+' mL</td><td class="num">'+(r.air>0? q(r.air)+' mL':'\u2013')+'</td>'
+      +'<td class="num '+(over?'cellbad':'')+'">'+q(pk)+' mL</td>'
+      +'<td class="num">'+(r.cap>0? q(r.cap)+' mL'+(r.capSrc? ' <span class="note">('+esc(r.capSrc)+')</span>':'') : '<span class="note">unknown</span>')+'</td>'
+      +'<td class="'+(bad?'st-bad':'st-ok')+'">'+esc(r.status)+'</td></tr>'; });
+  $('prepTable').innerHTML=h;
+  $('prepKit').innerHTML='<div class="note">Bags are shown with their prepare volumes; the lines the protocol does not use are greyed out.</div>'+kitSvg(M,-1,null,kitId,L);
+  const notes=[];
+  rows.forEach(r=>{ if(r.air>0) notes.push('Bag '+r.key+(r.name? ' ('+r.name+')':'')+' receives '+q(r.air)+' mL of air at step '+r.airSteps.join(', ')+'.'); });
+  if(rows.some(r=>r.recStar)) notes.push('* A step takes liquid from this bag until the bubble sensor sees air, so the bag is emptied by design: the recommendation follows the start volume given in the protocol file (plus the margin).');
+  notes.push('Recommended = the most liquid the protocol draws from that bag, plus the safety margin, rounded up to 5 mL. Bags that only receive liquid need 0 mL at the start.');
+  notes.push('Air pushed in from lines J or K is assumed to stay in the bag (a worst case). Capacity "unknown" means the protocol file has none; the isolation bag uses the 1000 mL maximum from the user guide. Tubing volumes are not included.');
+  $('prepNotes').innerHTML=notes.map(n=>'<div>'+esc(n)+'</div>').join('');
+}
+
+// ---------- info ----------
+function renderInfo(){
+  const kv=rows=>rows.map(r=>'<tr><td style="white-space:nowrap;color:var(--muted)">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>').join('');
+  $('infoTable').innerHTML=kv(infoRows(M,kitId));
+  const bagKeys=Object.keys(M.bags).filter(k=>{ const b=M.bags[k]; return b.label||b.desc||b.start||b.cap||b.second; });
+  $('infoBags').innerHTML='<tr><th>Line</th><th>Name</th><th>Description</th><th>Start</th><th>Capacity</th><th>2nd line</th></tr>'+(bagKeys.length? bagKeys.map(k=>{ const b=M.bags[k]; return '<tr><td><b>'+esc(k)+'</b></td><td>'+esc(b.label)+'</td><td>'+esc(b.desc)+'</td><td>'+fmtNum(b.start)+'</td><td>'+(b.cap? fmtNum(b.cap):'')+'</td><td>'+esc(b.second)+'</td></tr>'; }).join('') : '<tr><td colspan="6" class="note">No bag information in this file.</td></tr>');
+  $('infoDE').innerHTML='<tr><th>Name</th><th>Min</th><th>Max</th><th>Units</th></tr>'+(M.entries.length? M.entries.map(e=>'<tr><td>'+esc(e.name)+'</td><td>'+fmtNum(e.min)+'</td><td>'+fmtNum(e.max)+'</td><td>'+esc(e.units)+'</td></tr>').join('') : '<tr><td colspan="4" class="note">None (older software version).</td></tr>');
+  $('infoVars').innerHTML='<tr><th>Name</th><th>Type</th><th>Definition</th><th>Units</th></tr>'+(M.vars.length? M.vars.map(v=>'<tr><td>'+esc(v.name)+'</td><td>'+esc(v.type)+'</td><td>'+esc(varDef(M,v))+'</td><td>'+esc(v.units)+'</td></tr>').join('') : '<tr><td colspan="4" class="note">None (older software version).</td></tr>');
+}
+
+// ---------- compare ----------
+let cmpLast=null;
+function fillSelect(sel,keep){ sel.innerHTML=P.map((p,i)=>'<option value="'+i+'">'+esc(p.label)+'</option>').join(''); if(keep!==undefined&&keep<P.length) sel.value=keep; }
+function renderCompare(){
+  const a=$('cmpA'), b=$('cmpB'); const ka=a.value!==''?+a.value:0, kb=b.value!==''?+b.value:Math.min(1,P.length-1);
+  fillSelect(a,ka); fillSelect(b,kb);
+  const need=P.length<2;
+  $('cmpNeed').textContent= need? 'Open at least two protocols to compare them.' : '';
+  ['cmpSum','cmpChanges'].forEach(id=>$(id).innerHTML=''); $('cmpTable').innerHTML='';
+  if(need) return;
+  const pa=P[+a.value], pb=P[+b.value];
+  if(pa===pb){ $('cmpNeed').textContent='Choose two different protocols.'; return; }
+  const La=computeLedger(pa.M,pa.kitId), Lb=computeLedger(pb.M,pb.kitId);
+  const R=compareProtocols(pa,pb); cmpLast=R;
+  const rowsInfo=[['Kit',KITS[pa.kitId].name,KITS[pb.kitId].name],['Steps',pa.M.steps.length,pb.M.steps.length],
+    ['Estimated automatic time',fmtTime(La.total),fmtTime(Lb.total)],['Schema version',pa.M.schema||'(none)',pb.M.schema||'(none)'],
+    ['Data entries',pa.M.entries.length,pb.M.entries.length],['Variables',pa.M.vars.length,pb.M.vars.length],
+    ['Author',pa.M.author||'',pb.M.author||''],['Saved',(pa.M.meta.DateSaved||''),(pb.M.meta.DateSaved||'')]];
+  let s='<div class="sum"><div></div><div class="h">A \u00B7 '+esc(pa.label)+'</div><div class="h">B \u00B7 '+esc(pb.label)+'</div>';
+  rowsInfo.forEach(r=>{ const d=String(r[1])!==String(r[2]); s+='<div>'+esc(r[0])+'</div><div class="'+(d?'d':'')+'">'+esc(r[1])+'</div><div class="'+(d?'d':'')+'">'+esc(r[2])+'</div>'; });
+  // bags needing liquid at the start
+  const keys=[...new Set(La.keys.concat(Lb.keys))].sort();
+  keys.forEach(k=>{ const x=La.bags[k], y=Lb.bags[k]; const tx=x? fmtNum(x.needed)+' mL needed (peak '+fmtNum(x.peakTotal)+')' : '(not used)', ty=y? fmtNum(y.needed)+' mL needed (peak '+fmtNum(y.peakTotal)+')' : '(not used)';
+    s+='<div>Bag '+esc(k)+'</div><div class="'+(tx!==ty?'d':'')+'">'+esc(tx)+'</div><div class="'+(tx!==ty?'d':'')+'">'+esc(ty)+'</div>'; });
+  s+='</div>';
+  const c=R.counts;
+  s+='<div class="note" style="margin-bottom:8px">Steps: '+c.same+' same \u00B7 '+c.changed+' changed \u00B7 '+c.edited+' edited/replaced \u00B7 '+c.onlyA+' only in A \u00B7 '+c.onlyB+' only in B</div>';
+  $('cmpSum').innerHTML=s;
+  const onlyDiff=$('cmpDiff').checked;
+  let h='<tr><th>Status</th><th>A</th><th>B</th>'+ROW_COLS.slice(1).map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+  R.rows.forEach(r=>{ if(onlyDiff&&r.status==='Same') return;
+    const cls=r.t==='A'?'onlyA':(r.t==='B'?'onlyB':'');
+    h+='<tr class="'+cls+'"><td>'+esc(r.status)+'</td><td>'+(r.a?esc(r.a.cells[0]):'')+'</td><td>'+(r.b?esc(r.b.cells[0]):'')+'</td>';
+    for(let col=1;col<ROW_COLS.length;col++){
+      const va=r.a? r.a.cells[col]:'', vb=r.b? r.b.cells[col]:'';
+      if(r.a&&r.b){ const d=r.diff.indexOf(col)>=0; h+='<td class="'+(d?'chg':'')+'">'+(d? esc(va||'(none)')+' \u2192 '+esc(vb||'(none)') : esc(vb))+'</td>'; }
+      else h+='<td>'+esc(r.a? va : vb)+'</td>';
+    }
+    h+='</tr>'; });
+  $('cmpTable').innerHTML=h;
+  $('cmpChanges').innerHTML= R.changes.length? '<h2 style="font-size:14px;margin-top:12px">List of changes</h2><ul class="chg">'+R.changes.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>' : '<div class="note" style="margin-top:8px">No differences in the steps.</div>';
+}
+['cmpA','cmpB'].forEach(id=>$(id).addEventListener('change',()=>renderCompare()));
+$('cmpDiff').addEventListener('change',()=>renderCompare());
+$('cmpCopy').addEventListener('click',()=>{ if(cmpLast) copyText(cmpLast.changes.join('\n'),'cmpMsg'); });
+
+// ---------- buttons and keys ----------
+function step(d){ if(!M||view!=='steps') return; cur=Math.min(M.steps.length-1,Math.max(0,cur+d)); renderAll(); }
+$('prev').addEventListener('click',()=>step(-1));
+$('next').addEventListener('click',()=>step(1));
+$('sensorStart').addEventListener('change',e=>{ if(M){ M.simStart=e.target.value; renderView(); } });
+$('resetBags').addEventListener('click',()=>{ if(!M) return; M.bagEdit={}; syncBagInputs(); renderView(); });
+$('usePlain').addEventListener('click',()=>{ if(!M) return; Object.keys(M.bagEdit).forEach(k=>{ delete M.bagEdit[k].start; }); syncBagInputs(); renderView(); });
+$('useRec').addEventListener('click',()=>{ if(!M) return; const rows=prepRows(M,kitId,L);
+  rows.forEach(r=>{ M.bagEdit[r.key]=M.bagEdit[r.key]||{}; M.bagEdit[r.key].start=r.recommended; }); syncBagInputs(); renderView(); });
+$('margin').addEventListener('input',e=>{ if(M){ M.margin=Math.max(0,num(e.target.value)); renderView(); } });
+$('countAir').addEventListener('change',e=>{ if(M){ M.countAir=e.target.checked; renderView(); } });
+$('printPrep').addEventListener('click',()=>window.print());
+$('copyPrep').addEventListener('click',()=>{ if(M) copyText(prepText(M,kitId,L),'copyMsg'); });
+document.addEventListener('keydown',e=>{ const t=e.target&&e.target.tagName; if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){ if(view==='steps'){ e.preventDefault(); step(1); } }
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ if(view==='steps'){ e.preventDefault(); step(-1); } } });
+$('file').addEventListener('change',e=>{ openFiles(e.target.files); e.target.value=''; });
+$('ex').addEventListener('click',()=>loadText($('example').textContent,'TRANG-TRY (example)'));
+const drop=$('drop');
+['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+document.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files) openFiles(e.dataTransfer.files); });
+</script>
+</body>
+</html>
