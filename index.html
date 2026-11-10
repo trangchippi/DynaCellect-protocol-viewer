@@ -176,7 +176,17 @@ details.card summary{cursor:pointer;font-weight:600}
 .disc{max-width:1560px;margin:0 auto;padding:0 16px 24px;color:var(--muted);font-size:12px}
 .disc a{color:var(--accent);cursor:pointer}
 .ver{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 8px;margin-left:6px}
+.seg{display:inline-flex;gap:4px}
+.row .fl.var{border-color:var(--blue);color:var(--blue)}
+.row.cur .fl.var{border-color:#fff;color:#fff}
+.varybox{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0 12px;background:var(--tint)}
+.varybox h3{margin:0 0 4px;font-size:14px}
+.varybox input[type=number]{width:80px}
+#prepSummary{margin:8px 0;font-size:13px}
+#prepSummary b{font-weight:600}
+td.dem{font-size:12px;color:var(--muted);min-width:200px}
 @media print{
+  #advBox{display:none !important}
   header,#drop,#msg,#tabs,#subtabs,#inputsBox,#vSteps,#vList,#vInfo,#vCompare,#vHelp,.disc{display:none !important}
   #prepTable input{border:0;background:none;padding:0;width:auto;font-weight:700;-moz-appearance:textfield;appearance:textfield}
   #prepTable input::-webkit-outer-spin-button,#prepTable input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -186,7 +196,7 @@ details.card summary{cursor:pointer;font-weight:600}
 <body>
 <header>
   <div>
-    <h1>DynaCellect protocol viewer <span class="ver">prototype v0.4</span></h1>
+    <h1>DynaCellect protocol viewer <span class="ver">prototype v0.5</span></h1>
     <div class="sub" id="pinfo">Open one or more protocol .json files, or try the built-in example.</div>
   </div>
   <div>
@@ -214,10 +224,15 @@ details.card summary{cursor:pointer;font-weight:600}
       <div><h3>4. List view</h3>
         <ul><li>All steps in one table. Filter by text, show only steps with warnings, click a row to open the step, copy the table or download it as CSV.</li></ul></div>
       <div><h3>5. Bag preparation</h3>
-        <ul><li>Shows which line each bag connects to, how much to prepare, the peak volume (with air) and whether the bag can hold it.</li>
+        <ul><li>Shows which line each bag connects to, how much to prepare, and the largest volume the bag will hold during the run (liquid plus air), which tells you the smallest bag to use.</li>
         <li>Type the volume you will prepare and the bag capacity in the table, or use <b>Use protocol start volumes</b> / <b>Use recommended start volumes</b>.</li>
         <li><b>Print / save as PDF</b> prints only this sheet.</li></ul></div>
-      <div><h3>6. Info and Compare</h3>
+      <div><h3>6. Simple and Advanced bag preparation</h3>
+        <ul><li><b>Simple</b>: one table with a single number per bag, using the data entries and start volumes you have set.</li>
+        <li><b>Advanced</b>: for runs where an input varies (for example how much cell suspension you load). Tick what varies and give low and high values. The sheet then shows, per bag, the volume the bag needs at the start as a range, a recommended range to prepare, the peak liquid and air, and the largest volume it will hold.</li>
+        <li>Each step is labelled: <b>Fixed</b> (a set volume), <b>Small fixed</b> (a flush or priming push, 30 mL or less), <b>Priming</b> (ends when liquid reaches the sensor), <b>Flexible</b> (ends when the bag runs dry, so it takes whatever the bag holds), <b>Data entry</b> (set by a data entry), <b>Air</b>, or <b>No pump</b>. Fixed, small and priming steps set the minimum a bag must hold; flexible steps set the range.</li>
+        <li>Steps whose volume changes when a varying input changes are marked <b>var</b> in the step list and show what they depend on, so you can follow a flexible input into the later steps that use its liquid.</li></ul></div>
+      <div><h3>7. Info and Compare</h3>
         <ul><li><b>Info</b>: protocol details including the software version, kit setup, data entries and variables.</li>
         <li><b>Compare</b>: choose two open protocols. Steps are matched by name, so an inserted step stays one row; only changed cells are highlighted, and the changes can be copied as a list.</li></ul></div>
       <div><h3>What it can do</h3>
@@ -227,7 +242,8 @@ details.card summary{cursor:pointer;font-weight:600}
       <div><h3>What it cannot do</h3>
         <ul><li>It is not validated and does not replace the instrument, the user guide or your own procedures. It has been checked against only a few real runs.</li>
         <li>It does not include liquid held in the tubing, cell losses, or the time people take to respond to prompts and pauses.</li>
-        <li>Where a protocol gives a volume as a range or text (for example "30-200 mL"), you must enter the real volume.</li>
+        <li>Where a protocol gives a volume as a range or text (for example "30-200 mL"), you must enter the real volume or mark it as varying. In Advanced mode the ranges come from running the protocol at the low and high ends of the inputs you tick (all combinations for up to four inputs); this is a practical envelope, not a proof that no other combination is worse.</li>
+        <li>Tubing volumes (including the line between the kit and the bag) are not included, so a small amount of extra liquid may be needed for priming and flushing. Liquid you add to a bag during a prompt (for example rinse buffer) is also unknown to the page.</li>
         <li>Air pushed into a bag is assumed to stay there (a worst case). The bubble sensor notes are based on an assumed reading of the sensor names and are only hints.</li>
         <li>The kit drawing is a schematic, not to scale. The kit (isolation or bead removal) is detected from the protocol.</li></ul></div>
     </div>
@@ -289,6 +305,7 @@ details.card summary{cursor:pointer;font-weight:600}
     <section class="card" id="prepCard">
       <h2>Bag preparation sheet</h2>
       <div class="prepbar noprint">
+        <span class="seg"><button class="pill on" id="modeSimple">Simple</button><button class="pill" id="modeAdv">Advanced</button></span>
         <label class="sub">Safety margin <input type="number" id="margin" min="0" step="5" value="10"> %</label>
         <button id="usePlain">Use protocol start volumes</button>
         <button id="useRec" class="primary">Use recommended start volumes</button>
@@ -298,7 +315,13 @@ details.card summary{cursor:pointer;font-weight:600}
         <button id="copyPrep">Copy table</button><button id="printPrep">Print / save as PDF</button>
         <span class="note" id="copyMsg"></span>
       </div>
+      <div id="advBox" class="varybox hide noprint">
+        <h3>What varies from run to run?</h3>
+        <div class="note" style="margin-bottom:6px">Tick the inputs that are not fixed (for example the cell input volume) and give their low and high values. The page then runs the protocol at the low and high ends and shows ranges. Inputs you leave unticked use the single value you have set. If the same quantity appears twice (for example a cell input data entry and the cell input bag), tick only one of them or give both the same range.</div>
+        <div class="tablewrap"><table class="grid" id="varyTable"></table></div>
+      </div>
       <div id="prepHead" class="note"></div>
+      <div id="prepSummary"></div>
       <div class="tablewrap"><table id="prepTable"></table></div>
       <div id="prepKit"></div>
       <div id="prepNotes" class="note"></div>
@@ -338,6 +361,7 @@ details.card summary{cursor:pointer;font-weight:600}
 // <logic>
 
 
+
 const PAL = {ink:'var(--ink)',muted:'var(--muted)',line:'var(--line)',bag:'var(--bag)',bagStroke:'var(--bagStroke)',
   accent:'var(--accent)',dest:'var(--dest)',ok:'var(--ok)',blue:'var(--blue)',panel:'var(--panel)',
   flow:'var(--flow)',chev:'var(--chev)',tube:'var(--tube)',fill:'var(--fill)',err:'var(--err)'};
@@ -357,6 +381,12 @@ function detectKind(root){
   return 'unknown';
 }
 
+function parseRangeNote(s){
+  s=String(s||'').trim(); let m;
+  if((m=s.match(/^(\d+(?:\.\d+)?)\s*(?:-|\u2013|to)\s*(\d+(?:\.\d+)?)\s*(?:ml)?$/i))) return {lo:parseFloat(m[1]),hi:parseFloat(m[2])};
+  if((m=s.match(/^up\s*to\s*(\d+(?:\.\d+)?)\s*(?:ml)?$/i))) return {lo:0,hi:parseFloat(m[1])};
+  return null;
+}
 function strictNum(x){
   const s=String(x===undefined||x===null? '' : x).trim(); if(s==='') return {v:0,note:''};
   const m=s.match(/^(-?\d+(?:\.\d+)?)\s*(?:ml)?$/i); if(m) return {v:parseFloat(m[1]),note:''};
@@ -374,7 +404,7 @@ function parseProtocol(root){
   const bags={};
   Object.keys(root.bags||{}).forEach(k=>{ const b=root.bags[k]||{};
     const sn=strictNum(b.startingVolume), cn=strictNum(b.capacity);
-    bags[k]={label:b.label||'',desc:b.description||'',start:sn.v,startNote:sn.note,cap:cn.v,capNote:cn.note,second:b.second_connection||''}; });
+    bags[k]={label:b.label||'',desc:b.description||'',start:sn.v,startNote:sn.note,range:parseRangeNote(sn.note),cap:cn.v,capNote:cn.note,second:b.second_connection||''}; });
   const steps=asArr(root.Steps).map((s,i)=>{
     const p=firstObj(s.Pumps), r=firstObj(s.Rocker), pr=(s.Prompt&&typeof s.Prompt==='object')?s.Prompt:{};
     const fd=String(p.flowDirection||'').split(' to ');
@@ -389,7 +419,7 @@ function parseProtocol(root){
       trig:asArr(s.Triggers).map(t=>({type:t.type||'',sub:t.subType||'',target:t.Target||'',unit:t.Unit||''}))
     };
   });
-  return {kind:'dyna', bagEdit:{}, simStart:'Dry', countAir:true, margin:10, name:md.ProtocolName||md.FileName||'(unnamed protocol)', schema:md.SchemaVersion||'', author:md.Author||'',
+  return {kind:'dyna', bagEdit:{}, vary:{bags:{},entries:{}}, simStart:'Dry', countAir:true, margin:10, name:md.ProtocolName||md.FileName||'(unnamed protocol)', schema:md.SchemaVersion||'', author:md.Author||'',
           ptype:(md.ProtocolType||'')+' '+(md.RecipeType||''), meta:md, fixed:(root.FixedData&&typeof root.FixedData==='object')?root.FixedData:{}, run:(root.RunData&&typeof root.RunData==='object')?root.RunData:{}, saved:md.DateSaved||'', entries, vars, bags, steps};
 }
 
@@ -755,7 +785,7 @@ function rockerSvg(st,P){
 
 // ---------- overview rows, comparison, export helpers ----------
 function stepName(s){ return s.label||s.desc||('Step '+s.n); }
-const ROW_COLS=['Step','Name','Path','Pump','Flow rate','Time','Triggers','Rocker','Magnet','Prompt'];
+const ROW_COLS=['Step','Name','Path','Pump','Flow rate','Time','Triggers','Rocker','Magnet','Prompt','Type'];
 function pathText(m,s){ if(!(s.from&&s.to)) return ''; const nm=k=>k+(lineLabel(m,k)? ' ('+lineLabel(m,k)+')' : ''); return nm(s.from)+' \u2192 '+nm(s.to); }
 function stepRows(m,kitId,L){
   L=L||computeLedger(m,kitId);
@@ -766,7 +796,7 @@ function stepRows(m,kitId,L){
       pump=p.join(', '); if(ls.moved<c.moved-0.001) pump+=' (moves '+fmtNum(ls.moved)+' mL)'; }
     const rocker=(s.rocking? 'Rocking '+(s.angStart!==null? s.angStart+'\u00B0 \u2194 ':'')+s.angEnd+'\u00B0, '+fmtNum(s.rpm)+' CPM' : 'Static '+s.angEnd+'\u00B0')+(c.rdur.value>0? ' \u00B7 '+(c.rdur.label||fmtNum(c.rdur.value)+' s') : '');
     const cells=[s.n, stepName(s), pathText(m,s), pump, (c.pumpOn&&s.rate>0)? fmtNum(s.rate)+' mL/min' : '', ls.time>0? fmtTime(ls.time) : '',
-      triggerList(m,s,c).map(t=>t.text).join('; '), rocker, s.magnet?'On':'Off', s.prompt.on? (s.prompt.msg||'(prompt)') : ''];
+      triggerList(m,s,c).map(t=>t.text).join('; '), rocker, s.magnet?'On':'Off', s.prompt.on? (s.prompt.msg||'(prompt)') : '', tagText(stepTags(m,s,c,ls))];
     return {i, cells, warn:ls.notes.some(n=>n.lvl!=='info'), notes:ls.notes};
   });
 }
@@ -828,12 +858,147 @@ function infoRows(m,kitId){
   return rows;
 }
 
+// ---------- step types, "what varies" ranges and the min / max analysis ----------
+const SMALL_ML=30;
+const TAG_TEXT={none:'No pump',air:'Air',flexible:'Flexible',data:'Data entry',small:'Small fixed',fixed:'Fixed',prime:'Priming'};
+const TAG_HELP={none:'nothing is pumped',air:'air is pushed in; no liquid moves',flexible:'ends when the bag runs dry, so the volume follows what the bag holds',
+  data:'volume or time is set by a data entry or variable',small:'small fixed volume (for example a flush or priming push)',fixed:'a set volume that does not depend on the bubble sensor',
+  prime:'ends when liquid reaches the bubble sensor (priming the line)'};
+function isVarRaw(m,raw){ return !!raw && valueOf(m,raw)!==null; }
+function stepTags(m,s,c,ls){
+  const t=[];
+  if(!c.pumpOn){ t.push('none'); return t; }
+  if(s.from==='J'||s.from==='K'){ t.push('air'); return t; }
+  const bs=s.trig.filter(x=>x.type.toLowerCase().indexOf('bubble')>=0).map(x=>bubbleInfo(x).stop);
+  const flex=bs.indexOf('dry')>=0, prime=!flex&&bs.indexOf('wet')>=0, data=isVarRaw(m,s.volRaw)||isVarRaw(m,s.durRaw);
+  if(flex) t.push('flexible'); if(prime) t.push('prime'); if(data) t.push('data');
+  if(!flex&&!prime&&!data) t.push(ls.moved<=SMALL_ML? 'small':'fixed');
+  return t;
+}
+function tagText(tags){ return tags.map(x=>TAG_TEXT[x]).join(' + '); }
+function fmtRange(a,b){ return Math.abs(a-b)<0.5? fmtNum(a) : fmtNum(a)+'\u2013'+fmtNum(b); }
+
+function usedEntryIds(m){
+  const ids=new Set();
+  const add=raw=>{ let id=raw, g=0; while(id&&g++<6){ const v=m.vars.find(x=>x.id===id); if(v){ id=v.de; continue; } if(m.entries.find(e=>e.id===id)) ids.add(id); break; } };
+  m.steps.forEach(s=>{ add(s.volRaw); add(s.durRaw); add(s.rDurRaw); s.trig.forEach(t=>add(t.target)); });
+  return ids;
+}
+// candidates for "what varies": every bag in the run and every data entry the steps use
+function varyCandidates(m,kitId,L){
+  const bags=L.keys.map(k=>{ const b=m.bags[k]||{}, why=[];
+    if(b.startNote) why.push('protocol says "'+b.startNote+'"');
+    if(L.dryOut[k]) why.push('a step ends when it runs dry');
+    const nmk=bagName(m,k); if((/input|apheresis|leuk|donor|patient|sample|static cul|culture/i.test(nmk)||/^cells?$/i.test(nmk.trim())) && !/output|waste|supernatant|extra/i.test(nmk)) why.push('looks like an input bag');
+    return {k,why}; });
+  const used=usedEntryIds(m);
+  const entries=m.entries.filter(e=>used.has(e.id)).map(e=>({id:e.id,why:['data entry used by the steps']}));
+  return {bags,entries};
+}
+function varyDefaults(m,type,id){
+  if(type==='entry'){ const e=m.entries.find(x=>x.id===id); return {lo:e.min,hi:e.max}; }
+  const b=m.bags[id]||{}; if(b.range) return {lo:b.range.lo,hi:b.range.hi};
+  const base=bagParam(m,id,'start'); return base>0? {lo:Math.round(base*0.5),hi:Math.round(base*1.5)} : {lo:0,hi:100};
+}
+function varyList(m){
+  const v=[];
+  Object.keys(m.vary.bags).forEach(k=>{ const x=m.vary.bags[k]; if(x&&x.on&&x.hi>=x.lo) v.push({type:'bag',id:k,lo:x.lo,hi:x.hi,name:'Bag '+k+(bagName(m,k)? ' ('+bagName(m,k)+')':'')}); });
+  Object.keys(m.vary.entries).forEach(id=>{ const x=m.vary.entries[id]; if(x&&x.on&&x.hi>=x.lo){ const e=m.entries.find(q=>q.id===id); if(e) v.push({type:'entry',id,lo:x.lo,hi:x.hi,name:e.name}); } });
+  return v;
+}
+function scenarioModel(m,ov){
+  const mm=Object.assign({},m);
+  mm.entries=m.entries.map(e=>Object.assign({},e,{value:(ov.entry&&ov.entry[e.id]!==undefined)? ov.entry[e.id] : e.value}));
+  mm.bagEdit=JSON.parse(JSON.stringify(m.bagEdit||{}));
+  Object.keys(ov.bag||{}).forEach(k=>{ mm.bagEdit[k]=mm.bagEdit[k]||{}; mm.bagEdit[k].start=ov.bag[k]; });
+  return mm;
+}
+// runs the protocol with the varying inputs at their low / high ends and reports the envelope
+function computeEnvelope(m,kitId,Lbase){
+  const vary=varyList(m), n=vary.length;
+  const mk=pick=>{ const ov={bag:{},entry:{}}; vary.forEach((v,i)=>{ const val=pick(i); if(val===null||val===undefined) return; ov[v.type==='bag'?'bag':'entry'][v.id]=val; }); return ov; };
+  const run=ov=>computeLedger(scenarioModel(m,ov),kitId);
+  const Lb=Lbase||run({bag:{},entry:{}});
+  const combos=[];
+  if(n>0){ if(n<=4){ for(let mask=0;mask<(1<<n);mask++) combos.push(mk(i=>((mask>>i)&1)? vary[i].hi : vary[i].lo)); }
+           else { combos.push(mk(i=>vary[i].lo)); combos.push(mk(i=>vary[i].hi)); } }
+  const ones=[]; vary.forEach((v,idx)=>{ [v.lo,v.hi].forEach(val=>ones.push({idx,L:run(mk(j=>j===idx? val : null))})); });
+  const all=[Lb].concat(combos.map(run)).concat(ones.map(o=>o.L));
+  const mn=a=>Math.min.apply(null,a), mx=a=>Math.max.apply(null,a);
+  const bags={};
+  Lb.keys.forEach(k=>{ const arr=all.map(x=>x.bags[k]), f=fn=>arr.map(fn);
+    bags[k]={needMin:mn(f(b=>b.needed)),needMax:mx(f(b=>b.needed)),liqMin:mn(f(b=>b.peak)),liqMax:mx(f(b=>b.peak)),airMin:mn(f(b=>b.air)),airMax:mx(f(b=>b.air)),
+      totMin:mn(f(b=>b.peakTotal)),totMax:mx(f(b=>b.peakTotal)),endMin:mn(f(b=>b.end)),endMax:mx(f(b=>b.end)),drivers:[]};
+    ones.forEach(o=>{ const b=o.L.bags[k], b0=Lb.bags[k];
+      if(Math.abs(b.needed-b0.needed)>0.5||Math.abs(b.peakTotal-b0.peakTotal)>0.5||Math.abs(b.peak-b0.peak)>0.5||Math.abs(b.air-b0.air)>0.5){
+        const nme=vary[o.idx].name; if(bags[k].drivers.indexOf(nme)<0) bags[k].drivers.push(nme); } });
+  });
+  const steps=[];
+  for(let i=0;i<m.steps.length;i++){
+    const mv=all.map(x=>x.steps[i].moved), tm=all.map(x=>x.steps[i].time), d=[];
+    ones.forEach(o=>{ const s1=o.L.steps[i], s0=Lb.steps[i];
+      if(Math.abs(s1.moved-s0.moved)>0.5||Math.abs(s1.time-s0.time)>1){ const nme=vary[o.idx].name; if(d.indexOf(nme)<0) d.push(nme); } });
+    steps.push({movedMin:mn(mv),movedMax:mx(mv),timeMin:mn(tm),timeMax:mx(tm),drivers:d,dep:d.length>0});
+  }
+  const tot=all.map(x=>x.total);
+  return {vary,has:n>0,base:Lb,bags,steps,totalMin:mn(tot),totalMax:mx(tot),nScenarios:all.length};
+}
+// where each bag's volume comes from: fixed steps set the minimum, flexible steps set the range
+function bagDemand(m,kitId,L){
+  const out={}; L.keys.forEach(k=>{ out[k]={out:{fixed:0,fixedN:0,small:0,smallN:0,flex:0,flexN:0},inn:{fixed:0,fixedN:0,flex:0,flexN:0},steps:[]}; });
+  m.steps.forEach((s,i)=>{ const ls=L.steps[i], c=calc(m,s), tags=stepTags(m,s,c,ls); if(!(ls.moved>0||ls.R>0)) return;
+    const isFlex=tags.indexOf('flexible')>=0, isSmall=tags.indexOf('small')>=0||tags.indexOf('prime')>=0;
+    if(ls.src&&out[ls.src]){ const o=out[ls.src].out; if(isFlex){ o.flex+=ls.R; o.flexN++; } else { o.fixed+=ls.moved; o.fixedN++; if(isSmall){ o.small+=ls.moved; o.smallN++; } } }
+    if(ls.dst&&out[ls.dst]&&ls.src!==ls.dst){ const o=out[ls.dst].inn; if(isFlex){ o.flex+=ls.R; o.flexN++; } else { o.fixed+=ls.moved; o.fixedN++; } }
+  });
+  return out;
+}
+function advRows(m,kitId,L,env){
+  const rows=prepRows(m,kitId,L), dem=bagDemand(m,kitId,L);
+  return rows.map(r=>{
+    const e=env.bags[r.key], vb=m.vary.bags[r.key], varies=!!(vb&&vb.on&&vb.hi>=vb.lo);
+    let recLo=null, recHi=null, recKind;
+    if(varies){ recLo=vb.lo; recHi=vb.hi; recKind='input'; }
+    else if(r.recStar){ if(r.recommended===null){ recKind='yours'; } else { recLo=recHi=r.recommended; recKind='protocol'; } }
+    else { recLo=recommendedStart({needed:e.needMin},m.margin); recHi=recommendedStart({needed:e.needMax},m.margin); recKind='calc'; }
+    const maxIn=m.countAir? e.totMax : e.liqMax;
+    // status: start from the base-run status, re-check range and capacity against the whole envelope
+    let issues=(r.status==='OK')? [] : r.status.split(' + ').filter(x=>x.indexOf('Over capacity')<0);
+    if(varies){ issues=[]; const extra=e.needMax-vb.hi; if(extra>0.5) issues.push('Later steps draw up to '+fmtNum(extra)+' mL more than the input'); }
+    if(!varies && recKind==='calc' && issues.indexOf('Runs out')<0 && issues.indexOf('Start volume not stated')<0 && r.prepare<e.needMax-0.5){
+      issues.push(r.prepare<e.needMin-0.5? 'Runs out' : 'May run out (needs up to '+fmtNum(e.needMax)+' mL)'); }
+    if(r.cap>0 && maxIn>r.cap+0.001) issues.push(m.countAir && e.liqMax<=r.cap? 'Over capacity with air' : 'Over capacity');
+    return Object.assign({},r,{env:e,varies,vary:vb||null,recLo,recHi,recKind,maxIn,drivers:e.drivers,demand:dem[r.key],status:issues.length? issues.join(' + ') : 'OK'});
+  });
+}
+function demandText(d){
+  const q=fmtNum, parts=[];
+  const o=d.out; if(o.fixedN||o.flexN){ let t='Takes out: '; const a=[];
+    if(o.fixedN) a.push(q(o.fixed)+' mL fixed ('+o.fixedN+' step'+(o.fixedN>1?'s':'')+(o.smallN? ', '+q(o.small)+' mL of it small/priming':'')+')');
+    if(o.flexN) a.push('up to '+q(o.flex)+' mL flexible ('+o.flexN+' step'+(o.flexN>1?'s':'')+')');
+    parts.push(t+a.join(' + ')); }
+  const i=d.inn; if(i.fixedN||i.flexN){ const a=[];
+    if(i.fixedN) a.push(q(i.fixed)+' mL fixed ('+i.fixedN+')');
+    if(i.flexN) a.push('up to '+q(i.flex)+' mL flexible ('+i.flexN+')');
+    parts.push('Receives: '+a.join(' + ')); }
+  return parts;
+}
+function prepTextAdv(m,kitId,L,env){
+  const rows=advRows(m,kitId,L,env), q=v=>String(Math.round(v*10)/10);
+  const out=['Bag preparation (advanced) - '+m.name+' ('+KITS[kitId].name+')'];
+  out.push(['Connect to line','Bag','Protocol start','Prepare (mL)','Needs at start (mL)','Recommended prepare (mL)','Peak liquid (mL)','Air added (mL)',(m.countAir?'Max in bag incl. air (mL)':'Max in bag (mL)'),'Capacity (mL)','Check','Depends on'].join('\t'));
+  rows.forEach(r=>out.push([r.lines,r.name,(r.startNote? r.startNote : q(r.protocolStart)),q(r.prepare),fmtRange(r.env.needMin,r.env.needMax),
+    (r.recKind==='yours'? 'enter your volume' : fmtRange(r.recLo,r.recHi)+(r.recKind==='input'? ' (your input)':'')+(r.recKind==='protocol'?'*':'')),
+    fmtRange(r.env.liqMin,r.env.liqMax),(r.env.airMax>0? fmtRange(r.env.airMin,r.env.airMax) : '0'),q(r.maxIn),(r.cap>0? q(r.cap)+(r.capSrc?' ('+r.capSrc+')':'') : 'unknown'),r.status,r.drivers.join('; ')].join('\t')));
+  return out.join('\n');
+}
 
 // </logic>
 </script>
 <script id="ui">
 const P=[];                       // opened protocols: {id,label,M,cur,kitId,view}
-let M=null, cur=0, kitId='iso', L=null, active=-1, nextId=1, view='steps', helpOpen=false;
+let M=null, cur=0, kitId='iso', L=null, ENV=null, active=-1, nextId=1, view='steps', helpOpen=false, advMode=false;
+function refresh(){ L=computeLedger(M,kitId); ENV=computeEnvelope(M,kitId,L); }
 const $=id=>document.getElementById(id);
 function showMsg(t){ $('msg').textContent=t||''; }
 function shortStatus(b){ if(b.status==='OK') return 'OK'; if(b.issues.indexOf('Runs out')>=0) return 'Runs out'; if(b.issues.some(x=>x.indexOf('Over')===0)) return 'Over capacity'; return 'Not stated'; }
@@ -882,7 +1047,7 @@ function activate(i){
   $('kitname').textContent='\u00B7 '+KITS[kitId].name;
   $('sensorStart').value=M.simStart; $('margin').value=M.margin; $('countAir').checked=M.countAir;
   L=computeLedger(M,kitId);
-  buildInputs(); buildList(); buildPrep(); renderTabs(); setView(view);
+  buildInputs(); buildList(); buildPrep(); buildVary(); renderTabs(); setView(view);
 }
 function renderTabs(){
   const t=$('tabs'); t.innerHTML='';
@@ -910,7 +1075,7 @@ function setView(v){
   if(v==='compare') renderCompare(); else renderView();
 }
 function renderView(){
-  L=computeLedger(M,kitId);
+  refresh();
   if(view==='steps') renderAll(); else if(view==='list') renderList(); else if(view==='prep') renderPrep(); else if(view==='info') renderInfo();
 }
 document.querySelectorAll('#subtabs .pill').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
@@ -931,16 +1096,17 @@ function buildInputs(){
 function buildList(){
   const box=$('steplist'); box.innerHTML='';
   M.steps.forEach((s,i)=>{ const b=document.createElement('button'); b.className='row'; b.dataset.i=i; b.title=stepName(s);
-    b.innerHTML='<span class="n">'+esc(s.n)+'</span><span class="t">'+esc(stepName(s))+'</span><span class="fl bad hide" title="This step has a warning">!</span>'+(s.prompt.on?'<span class="fl" title="Prompt">prompt</span>':'');
+    b.innerHTML='<span class="n">'+esc(s.n)+'</span><span class="t">'+esc(stepName(s))+'</span><span class="fl var hide" title="Volume depends on an input you marked as varying">var</span><span class="fl bad hide" title="This step has a warning">!</span>'+(s.prompt.on?'<span class="fl" title="Prompt">prompt</span>':'');
     b.addEventListener('click',()=>{cur=i;renderAll();}); box.appendChild(b); });
 }
 function renderAll(){
-  L=computeLedger(M,kitId);
+  refresh();
   $('kitsvg').innerHTML=kitSvg(M,cur,null,kitId,L);
   $('rocker').innerHTML=rockerSvg(M.steps[cur]);
   renderRocker();
   document.querySelectorAll('#steplist .row').forEach((r,i)=>{ r.classList.toggle('cur',i===cur);
-    const bad=r.querySelector('.fl.bad'); if(bad) bad.classList.toggle('hide', !L.steps[i].notes.some(n=>n.lvl!=='info')); });
+    const bad=r.querySelector('.fl.bad'); if(bad) bad.classList.toggle('hide', !L.steps[i].notes.some(n=>n.lvl!=='info'));
+    const vr=r.querySelector('.fl.var'); if(vr) vr.classList.toggle('hide', !(ENV.has&&ENV.steps[i].dep)); });
   const row=document.querySelector('#steplist .row.cur'); if(row&&row.scrollIntoView) row.scrollIntoView({block:'nearest'});
   const tl=$('tl'); tl.innerHTML=''; const total=L.total;
   M.steps.forEach((s,i)=>{ const d=document.createElement('div'); const t=L.steps[i].time; const w=Math.max(t,total*0.01);
@@ -977,6 +1143,10 @@ function renderDetail(){
     h+='<dt>Pump</dt><dd>'+p.join('<br>')+'</dd>';
   } else h+='<dt>Pump</dt><dd>Not pumping</dd>';
   h+='<dt>Step time</dt><dd><span class="big">'+(ls.time>0? fmtTime(ls.time) : '\u2013')+'</span> <span class="note">'+(c.basis==='none'? 'not set':'from '+c.basis)+'</span></dd>';
+  const tg=stepTags(M,s,c,ls);
+  h+='<dt>Type</dt><dd>'+tg.map(x=>'<span class="tag">'+esc(TAG_TEXT[x])+'</span>').join('')+'<div class="note">'+esc(tg.map(x=>TAG_HELP[x]).join('; '))+'</div></dd>';
+  if(ENV.has){ const es=ENV.steps[cur];
+    if(es.dep||es.movedMax-es.movedMin>0.5) h+='<dt>Varies</dt><dd>'+fmtRange(es.movedMin,es.movedMax)+' mL moved, '+fmtTime(es.timeMin)+(Math.abs(es.timeMax-es.timeMin)>1? '\u2013'+fmtTime(es.timeMax):'')+(es.drivers.length? '<div class="note">depends on: '+esc(es.drivers.join(', '))+'</div>':'')+'</dd>'; }
   const tl=triggerList(M,s,c);
   h+='<dt>Triggers</dt><dd>'+(tl.length? tl.map(t=>'<span class="tag '+(t.kind==='bs'?'bs':'')+'">'+esc(t.text)+'</span>').join('') : '<span class="note">none</span>')+'</dd>';
   if(ls.notes.length) h+='<dt>Checks</dt><dd>'+ls.notes.map(n=>'<div class="msgline '+(n.lvl==='err'?'err':(n.lvl==='info'?'info':'warn'))+'">'+esc(n.text)+'</div>').join('')+'</dd>';
@@ -999,20 +1169,22 @@ function renderBagStatus(){
 }
 
 // ---------- list view ----------
-let ovRows=[];
+let ovRows=[], ovCols=ROW_COLS.slice();
 function renderList(){
   ovRows=stepRows(M,kitId,L);
+  ovCols=ROW_COLS.slice();
+  if(ENV.has){ ovCols.push('Volume range','Depends on'); ovRows.forEach(r=>{ const es=ENV.steps[r.i]; r.cells=r.cells.concat([es.movedMax>0.05? fmtRange(es.movedMin,es.movedMax)+' mL' : '', es.drivers.join('; ')]); }); }
   const f=$('ovFilter').value.toLowerCase().trim(), onlyW=$('ovWarn').checked;
   const shown=ovRows.filter(r=>(!onlyW||r.warn)&&(!f||r.cells.join(' ').toLowerCase().indexOf(f)>=0));
-  let h='<tr>'+ROW_COLS.map(c=>'<th>'+c+'</th>').join('')+'<th></th></tr>';
+  let h='<tr>'+ovCols.map(c=>'<th>'+c+'</th>').join('')+'<th></th></tr>';
   shown.forEach(r=>{ h+='<tr class="click" data-i="'+r.i+'">'+r.cells.map(c=>'<td>'+esc(c)+'</td>').join('')+'<td>'+(r.warn?'<span class="warnmark" title="'+esc(r.notes.map(n=>n.text).join(' '))+'">!</span>':'')+'</td></tr>'; });
   $('ovTable').innerHTML=h;
   $('ovTable').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{ cur=+tr.dataset.i; setView('steps'); }));
   const warns=ovRows.filter(r=>r.warn).length;
   const noVol=L.keys.some(k=>L.bags[k].issues.indexOf('Runs out')>=0||L.bags[k].issues.indexOf('Start volume not stated')>=0);
-  $('ovNote').textContent=shown.length+' of '+ovRows.length+' steps shown \u00B7 estimated automatic time '+fmtTime(L.total)+(warns? ' \u00B7 '+warns+' step(s) with warnings (!)'+(noVol? ' - many come from bags with no start volume; set them on the Bag preparation tab':''):'');
+  $('ovNote').textContent=shown.length+' of '+ovRows.length+' steps shown \u00B7 estimated automatic time '+(ENV.has? fmtTime(ENV.totalMin)+'\u2013'+fmtTime(ENV.totalMax) : fmtTime(L.total))+(warns? ' \u00B7 '+warns+' step(s) with warnings (!)'+(noVol? ' - many come from bags with no start volume; set them on the Bag preparation tab':''):'');
 }
-function ovExportRows(){ const rows=[ROW_COLS.slice()]; ovRows.forEach(r=>rows.push(r.cells)); return rows; }
+function ovExportRows(){ const rows=[ovCols.slice()]; ovRows.forEach(r=>rows.push(r.cells)); return rows; }
 function download(name,text,type){ const b=new Blob([text],{type:type||'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} a.remove(); },500); }
 function copyText(txt,msgId){
   const done=()=>{ $(msgId).textContent='Copied.'; setTimeout(()=>{$(msgId).textContent='';},2500); };
@@ -1025,46 +1197,111 @@ $('ovCopy').addEventListener('click',()=>{ if(M) copyText(toTSV(ovExportRows()),
 $('ovCsv').addEventListener('click',()=>{ if(M) download((P[active].label||'protocol')+'_list.csv','\uFEFF'+toCSV(ovExportRows()),'text/csv'); });
 
 // ---------- bag preparation ----------
-function buildPrep(){
-  const rows=prepRows(M,kitId,L), t=$('prepTable');
-  let h='<tr><th>Connect to line</th><th>Bag</th><th>Protocol start</th><th>Recommended</th><th>Prepare (mL)</th><th>Peak liquid</th><th>Air added</th><th id="thPeak">Peak incl. air</th><th>Capacity (mL)</th><th>Check</th></tr>';
-  rows.forEach(r=>{ h+='<tr data-k="'+esc(r.key)+'"><td><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td>'
-    +'<td class="num" data-c="ps"></td><td class="num" data-c="rec"></td>'
-    +'<td class="num"><input type="number" step="any" min="0" data-k="'+esc(r.key)+'" data-f="start"></td>'
-    +'<td class="num" data-c="pl"></td><td class="num" data-c="air"></td><td class="num" data-c="pk"></td>'
-    +'<td class="num"><input type="number" step="any" min="0" data-k="'+esc(r.key)+'" data-f="cap" title="0 = unknown"><div class="note" data-c="capn"></div></td><td data-c="st"></td></tr>'; });
-  t.innerHTML=h;
-  t.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{
-    const k=inp.dataset.k; M.bagEdit[k]=M.bagEdit[k]||{}; M.bagEdit[k][inp.dataset.f]=num(inp.value); renderView(); }));
+function setMode(adv){
+  advMode=adv; $('modeSimple').classList.toggle('on',!adv); $('modeAdv').classList.toggle('on',adv); $('advBox').classList.toggle('hide',!adv);
+  if(M){ buildPrep(); buildVary(); renderView(); }
 }
+$('modeSimple').addEventListener('click',()=>setMode(false));
+$('modeAdv').addEventListener('click',()=>setMode(true));
+
+function buildVary(){
+  const t=$('varyTable'); if(!t||!M) return;
+  const cand=varyCandidates(M,kitId,L);
+  let h='<tr><th>Input</th><th>Varies?</th><th>Low</th><th>High</th><th>Why it may vary</th></tr>';
+  cand.bags.forEach(c=>{ h+='<tr data-t="bag" data-id="'+esc(c.k)+'"><td><b>Bag '+esc(c.k)+'</b> '+esc(bagName(M,c.k))+' <span class="note">start volume (mL)</span></td><td><input type="checkbox" data-f="on"></td><td><input type="number" step="any" data-f="lo"></td><td><input type="number" step="any" data-f="hi"></td><td class="note">'+esc(c.why.join('; '))+'</td></tr>'; });
+  cand.entries.forEach(c=>{ const e=M.entries.find(x=>x.id===c.id); h+='<tr data-t="entry" data-id="'+esc(c.id)+'"><td>'+esc(e.name)+' <span class="note">data entry'+(e.units? ' ('+esc(e.units)+')':'')+'</span></td><td><input type="checkbox" data-f="on"></td><td><input type="number" step="any" data-f="lo"></td><td><input type="number" step="any" data-f="hi"></td><td class="note">'+esc(c.why.join('; '))+'</td></tr>'; });
+  t.innerHTML=h;
+  t.querySelectorAll('tr[data-t]').forEach(tr=>{
+    tr.querySelectorAll('input').forEach(inp=>inp.addEventListener(inp.type==='checkbox'?'change':'input',()=>onVaryChange(tr,inp)));
+  });
+  syncVary();
+}
+function onVaryChange(tr,inp){
+  const t=tr.dataset.t, id=tr.dataset.id, store=(t==='bag')? M.vary.bags : M.vary.entries, f=inp.dataset.f;
+  if(f==='on'){
+    if(inp.checked){ const d=varyDefaults(M,t,id); store[id]={on:true,lo:d.lo,hi:d.hi};
+      if(t==='bag' && !(M.bagEdit[id]&&M.bagEdit[id].start!==undefined) && (startUnknown(M,id)||bagParam(M,id,'start')===0)){ M.bagEdit[id]=M.bagEdit[id]||{}; M.bagEdit[id].start=Math.round((d.lo+d.hi)/2); } }
+    else if(store[id]) store[id].on=false;
+  } else { store[id]=store[id]||{on:false,lo:0,hi:0}; store[id][f]=num(inp.value); }
+  renderView(); syncVary();
+}
+function syncVary(){
+  document.querySelectorAll('#varyTable tr[data-t]').forEach(tr=>{
+    const store=(tr.dataset.t==='bag')? M.vary.bags : M.vary.entries, x=store[tr.dataset.id];
+    const on=tr.querySelector('input[data-f=on]'), lo=tr.querySelector('input[data-f=lo]'), hi=tr.querySelector('input[data-f=hi]');
+    on.checked=!!(x&&x.on);
+    const d=varyDefaults(M,tr.dataset.t,tr.dataset.id);
+    if(document.activeElement!==lo) lo.value= x? x.lo : d.lo;
+    if(document.activeElement!==hi) hi.value= x? x.hi : d.hi;
+    lo.disabled=hi.disabled=!(x&&x.on);
+  });
+}
+function buildPrep(){
+  const t=$('prepTable'); if(!M) return;
+  const rows=prepRows(M,kitId,L);
+  const inp=(k,f,title)=>'<input type="number" step="any" min="0" data-k="'+esc(k)+'" data-f="'+f+'"'+(title? ' title="'+title+'"':'')+'>';
+  let h;
+  if(!advMode){
+    h='<tr><th>Connect to line</th><th>Bag</th><th>Protocol start</th><th>Prepare (mL)</th><th>Recommended</th><th>Smallest bag to use</th><th>Check</th></tr>';
+    rows.forEach(r=>{ h+='<tr data-k="'+esc(r.key)+'"><td><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td><td class="num" data-c="ps"></td><td class="num">'+inp(r.key,'start')+'</td><td class="num" data-c="rec"></td><td class="num" data-c="maxin"></td><td data-c="st"></td></tr>'; });
+  } else {
+    h='<tr><th>Connect to line</th><th>Bag</th><th>Protocol start</th><th>Prepare (mL)</th><th>Needs at start</th><th>Recommended prepare</th><th>Peak liquid</th><th>Air added</th><th id="thMax">Max in bag</th><th>Capacity (mL)</th><th>Check</th><th>Depends on</th><th>Where the volume comes from</th></tr>';
+    rows.forEach(r=>{ h+='<tr data-k="'+esc(r.key)+'"><td><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td><td class="num" data-c="ps"></td><td class="num">'+inp(r.key,'start')+'<div class="note" data-c="vnote"></div></td><td class="num" data-c="need"></td><td class="num" data-c="rec"></td><td class="num" data-c="pl"></td><td class="num" data-c="air"></td><td class="num" data-c="maxin"></td><td class="num">'+inp(r.key,'cap','0 = unknown')+'<div class="note" data-c="capn"></div></td><td data-c="st"></td><td class="note" data-c="dep"></td><td class="dem" data-c="dem"></td></tr>'; });
+  }
+  t.innerHTML=h;
+  t.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{
+    const k=i.dataset.k; M.bagEdit[k]=M.bagEdit[k]||{}; M.bagEdit[k][i.dataset.f]=num(i.value); renderView(); }));
+}
+function statusCls(s){ return s==='OK'?'st-ok':((s.indexOf('Runs out')>=0||s.indexOf('Over')>=0||s.indexOf('May run out')>=0||s.indexOf('Later steps')>=0)?'st-bad':'st-warn'); }
 function renderPrep(){
-  const rows=prepRows(M,kitId,L), q=v=>fmtNum(v);
+  const q=v=>fmtNum(v);
+  const rows=advMode? advRows(M,kitId,L,ENV) : prepRows(M,kitId,L).map(r=>Object.assign(r,{maxIn:(M.countAir? r.peakTotal : r.peakLiquid)}));
   const des=M.entries.map(e=>e.name+' = '+fmtNum(e.value)+(e.units? ' '+e.units:'')).join('; ');
+  const vs=ENV.vary.map(v=>v.name+' '+fmtNum(v.lo)+'\u2013'+fmtNum(v.hi)).join('; ');
   $('prepHead').innerHTML='<b>'+esc(P[active].label)+'</b> \u00B7 '+esc(KITS[kitId].name)+' \u00B7 prepared '+esc(new Date().toLocaleString())
-    +(des? '<br>Data entries: '+esc(des) : '')+'<br>Bubble sensor at start: '+esc(M.simStart)+' \u00B7 safety margin '+fmtNum(M.margin)+'% \u00B7 air '+(M.countAir? 'counted':'not counted');
-  $('thPeak').textContent=M.countAir?'Peak incl. air':'Peak';
+    +(des? '<br>Data entries: '+esc(des) : '')+(advMode&&vs? '<br>Varying inputs: '+esc(vs) : '')+'<br>Bubble sensor at start: '+esc(M.simStart)+' \u00B7 safety margin '+fmtNum(M.margin)+'% \u00B7 air '+(M.countAir? 'counted':'not counted');
+  if($('thMax')) $('thMax').textContent=M.countAir? 'Max in bag (liquid + air)' : 'Max in bag (liquid)';
+  // advanced summary: step types and what the ranges are based on
+  if(advMode){
+    const tc={}; M.steps.forEach((s,i)=>{ stepTags(M,s,calc(M,s),L.steps[i]).forEach(t=>{ tc[t]=(tc[t]||0)+1; }); });
+    const order=['fixed','small','prime','flexible','data','air','none'];
+    $('prepSummary').innerHTML='<b>Step types:</b> '+order.filter(t=>tc[t]).map(t=>tc[t]+' '+TAG_TEXT[t].toLowerCase()).join(', ')+'.<br>'
+      +(ENV.has? '<b>Varying inputs:</b> '+esc(vs)+'. The protocol was run '+ENV.nScenarios+' times with these at their low and high ends; estimated time '+fmtTime(ENV.totalMin)+(Math.abs(ENV.totalMax-ENV.totalMin)>1? '\u2013'+fmtTime(ENV.totalMax):'')+'.'
+               : '<b>No varying inputs ticked.</b> Tick the inputs that change from run to run (box above) to see ranges.');
+  } else $('prepSummary').innerHTML='';
   rows.forEach(r=>{ const tr=document.querySelector('#prepTable tr[data-k="'+r.key+'"]'); if(!tr) return;
-    const set=(c,html)=>{ tr.querySelector('[data-c='+c+']').innerHTML=html; };
+    const set=(c,html)=>{ const el=tr.querySelector('[data-c='+c+']'); if(el) el.innerHTML=html; };
     set('ps', r.startNote? esc(r.startNote) : q(r.protocolStart)+' mL');
-    set('rec', r.recommended===null? '<span class="note">your volume</span>*' : q(r.recommended)+' mL'+(r.recStar?'*':''));
-    set('pl', q(r.peakLiquid)+' mL'); set('air', r.air>0? q(r.air)+' mL' : '\u2013');
-    const pk=M.countAir? r.peakTotal : r.peakLiquid, over=r.cap>0&&pk>r.cap+0.001;
-    const pkc=tr.querySelector('[data-c=pk]'); pkc.textContent=q(pk)+' mL'; pkc.className='num'+(over?' cellbad':'');
-    set('capn', r.cap>0? esc(r.capSrc||'') : 'unknown');
-    const st=tr.querySelector('[data-c=st]'); st.textContent=r.status; st.className=(r.status==='OK'?'st-ok':((r.status.indexOf('Runs out')>=0||r.status.indexOf('Over')>=0)?'st-bad':'st-warn'));
+    const cap=r.cap>0? r.cap : 0, over=cap>0&&r.maxIn>cap+0.001;
+    set('maxin','<b'+(over?' class="cellbad"':'')+'>'+q(r.maxIn)+' mL</b>'+(cap>0? '<div class="note">of '+q(cap)+(r.capSrc? ' ('+esc(r.capSrc)+')':'')+'</div>' : ''));
+    const stc=tr.querySelector('[data-c=st]'); stc.textContent=r.status; stc.className=statusCls(r.status);
+    if(!advMode){
+      set('rec', r.recommended===null? '<span class="note">your volume</span>*' : q(r.recommended)+' mL'+(r.recStar?'*':''));
+    } else {
+      const e=r.env;
+      set('need', (e.needMax<0.05? '\u2013' : fmtRange(e.needMin,e.needMax)+' mL'));
+      set('rec', r.recKind==='yours'? '<span class="note">your volume</span>*' : fmtRange(r.recLo,r.recHi)+' mL'+(r.recKind==='input'? '<div class="note">your input</div>' : (r.recKind==='protocol'?'*':'')));
+      set('pl', fmtRange(e.liqMin,e.liqMax)+' mL'); set('air', e.airMax>0.05? fmtRange(e.airMin,e.airMax)+' mL' : '\u2013');
+      set('vnote', r.varies? 'varies '+q(r.vary.lo)+'\u2013'+q(r.vary.hi)+' (value above is the typical case)' : '');
+      set('capn', r.cap>0? '' : 'unknown');
+      set('dep', esc(r.drivers.join('; ')));
+      set('dem', demandText(r.demand).map(esc).join('<br>'));
+    }
     const si=tr.querySelector('input[data-f=start]'), ci=tr.querySelector('input[data-f=cap]');
-    if(document.activeElement!==si) si.value=r.prepare; if(document.activeElement!==ci) ci.value=r.cap;
+    if(si&&document.activeElement!==si) si.value=r.prepare; if(ci&&document.activeElement!==ci) ci.value=r.cap;
   });
   $('prepKit').innerHTML='<div class="note">Bags are shown with their prepare volumes; the lines the protocol does not use are greyed out.</div>'+kitSvg(M,-1,null,kitId,L);
   const notes=[];
-  rows.forEach(r=>{ if(r.air>0) notes.push('Bag '+r.key+(r.name? ' ('+r.name+')':'')+' receives '+q(r.air)+' mL of air at step '+r.airSteps.join(', ')+'.'); });
-  if(rows.some(r=>r.recStar)) notes.push('* A step takes liquid from this bag until the bubble sensor sees air, so the bag is emptied by design: the recommendation follows the start volume given in the protocol file (plus the margin). Where the protocol gives a range or no number, enter the volume you will actually load.');
-  notes.push('Recommended = the most liquid the protocol draws from that bag, plus the safety margin, rounded up to 5 mL. Bags that only receive liquid need 0 mL at the start.');
+  rows.forEach(r=>{ if(r.air>0||(r.env&&r.env.airMax>0)) { const a=advMode&&r.env? fmtRange(r.env.airMin,r.env.airMax) : q(r.air); notes.push('Bag '+r.key+(r.name? ' ('+r.name+')':'')+' receives '+a+' mL of air at step '+r.airSteps.join(', ')+'.'); } });
+  if(rows.some(r=>r.recStar)) notes.push('* A step takes liquid from this bag until the bubble sensor sees air, so the bag is emptied by design: the recommendation follows the start volume given in the protocol file (plus the margin). Where the protocol gives a range or no number, enter the volume you will actually load or tick it as varying.');
+  notes.push('Smallest bag to use = the largest volume the bag will hold at any point in the run ('+(M.countAir? 'liquid plus air':'liquid only')+'); choose a bag at least that big, with some headroom.');
+  notes.push(advMode? 'Recommended = the volume the fixed steps need, plus the safety margin, rounded up to 5 mL; the range runs from the low to the high end of your varying inputs. Flexible steps take whatever the bag holds, so they do not add to the minimum.' : 'Recommended = the most liquid the protocol draws from that bag, plus the safety margin, rounded up to 5 mL. Bags that only receive liquid need 0 mL at the start.');
   notes.push('Air pushed in from lines J or K is assumed to stay in the bag (a worst case). Capacity "unknown" means the protocol file has none; the isolation bag uses the 1000 mL maximum from the user guide. Tubing volumes are not included.');
+  notes.push('Liquid you add to a bag while the run is paused for a prompt (for example rinse buffer added to the input bag) is not known to this page. If a bag shows "later steps draw more than the input", check the prompts before adding extra volume.');
   notes.push('Estimates only: not validated, and not a replacement for the instrument, the user guide or your own procedures.');
   $('prepNotes').innerHTML=notes.map(n=>'<div>'+esc(n)+'</div>').join('');
 }
-function syncPrepInputs(){ document.querySelectorAll('#prepTable input').forEach(inp=>{ const r=prepRows(M,kitId,L).find(x=>x.key===inp.dataset.k); if(r) inp.value= inp.dataset.f==='start'? r.prepare : r.cap; }); }
+function syncPrepInputs(){ const rows=prepRows(M,kitId,L); document.querySelectorAll('#prepTable input').forEach(inp=>{ const r=rows.find(x=>x.key===inp.dataset.k); if(r&&document.activeElement!==inp) inp.value= inp.dataset.f==='start'? r.prepare : r.cap; }); }
 
 // ---------- info ----------
 function renderInfo(){
@@ -1127,12 +1364,13 @@ $('prev').addEventListener('click',()=>step(-1));
 $('next').addEventListener('click',()=>step(1));
 $('sensorStart').addEventListener('change',e=>{ if(M){ M.simStart=e.target.value; renderView(); } });
 $('usePlain').addEventListener('click',()=>{ if(!M) return; Object.keys(M.bagEdit).forEach(k=>{ delete M.bagEdit[k].start; }); renderView(); syncPrepInputs(); });
-$('useRec').addEventListener('click',()=>{ if(!M) return; const rows=prepRows(M,kitId,L);
-  rows.forEach(r=>{ if(r.recommended===null) return; M.bagEdit[r.key]=M.bagEdit[r.key]||{}; M.bagEdit[r.key].start=r.recommended; }); renderView(); syncPrepInputs(); });
+$('useRec').addEventListener('click',()=>{ if(!M) return;
+  const rows=advMode? advRows(M,kitId,L,ENV) : prepRows(M,kitId,L);
+  rows.forEach(r=>{ const v=advMode? (r.varies? null : r.recHi) : r.recommended; if(v===null||v===undefined) return; M.bagEdit[r.key]=M.bagEdit[r.key]||{}; M.bagEdit[r.key].start=v; }); renderView(); syncPrepInputs(); });
 $('margin').addEventListener('input',e=>{ if(M){ M.margin=Math.max(0,num(e.target.value)); renderView(); } });
 $('countAir').addEventListener('change',e=>{ if(M){ M.countAir=e.target.checked; renderView(); } });
 $('printPrep').addEventListener('click',()=>window.print());
-$('copyPrep').addEventListener('click',()=>{ if(M) copyText(prepText(M,kitId,L),'copyMsg'); });
+$('copyPrep').addEventListener('click',()=>{ if(M) copyText(advMode? prepTextAdv(M,kitId,L,ENV) : prepText(M,kitId,L),'copyMsg'); });
 document.addEventListener('keydown',e=>{ const t=e.target&&e.target.tagName; if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
   if(e.key==='ArrowRight'||e.key==='ArrowDown'){ if(view==='steps'&&active!=='compare'){ e.preventDefault(); step(1); } }
   if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ if(view==='steps'&&active!=='compare'){ e.preventDefault(); step(-1); } } });
