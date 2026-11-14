@@ -3,17 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>DynaCellect protocol viewer</title>
 <style>
-:root{
-  --bg:#f6f8fb; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280; --line:#cbd5e1; --bag:#eef3f9; --bagStroke:#94a3b8;
-  --accent:#1e7fd6; --dest:#d97706; --ok:#16a34a; --warn:#b45309; --blue:#2563eb; --chip:#e5eaf1; --chipOn:#1e7fd6; --chipText:#1f2937;
-  --tint:#e8f1fb; --flow:#5bb0ff; --chev:#0b4f9c; --tube:#d9dcea; --fill:#9bd0ff; --err:#dc2626;
+:root{ color-scheme:light;
+  --bg:#f6f8fb; --panel:#ffffff; --ink:#1f2937; --muted:#626875; --line:#aebdd0; --bag:#eef3f9; --bagStroke:#788ba6;
+  --accent:#196ab2; --accentFill:#1b70bd; --dest:#9d5604; --destFill:#a75c05; --ok:#107837; --okFill:#107837; --warn:#a84d08; --blue:#1c5cea; --err:#ca2121;
+  --chip:#e5eaf1; --chipOn:#1b70bd; --chipText:#1f2937; --tint:#e8f1fb; --flow:#5bb0ff; --chev:#0b4f9c; --tube:#babfd9; --fill:#9bd0ff;
+  --hlChg:#ffe49a; --hlChgBar:#9a6108; --hlA:#fbcaca; --hlABar:#b91c1c; --hlB:#c4ebd0; --hlBBar:#15803d;
 }
 @media (prefers-color-scheme: dark){
-  :root{ --bg:#10151c; --panel:#18202a; --ink:#e5e9f0; --muted:#9aa5b4; --line:#3a4656; --bag:#1f2b38; --bagStroke:#5b6b7f;
-         --accent:#4da3ff; --dest:#f0a63a; --ok:#4ade80; --warn:#f0b35a; --blue:#6ea8ff; --chip:#263140; --chipOn:#2f7fd6; --chipText:#e5e9f0; --tint:#1c2a3a;
-         --flow:#2f7fd6; --chev:#e6f1ff; --tube:#2d394a; --fill:#2f6fb0; --err:#f87171; }
+  :root:not([data-theme="light"]){ color-scheme:dark;
+  --bg:#10151c; --panel:#18202a; --ink:#e5e9f0; --muted:#9aa5b4; --line:#404d5f; --bag:#1f2b38; --bagStroke:#66788e;
+  --accent:#4da3ff; --accentFill:#1f6ece; --dest:#f0a63a; --destFill:#b45309; --ok:#4ade80; --okFill:#15803d; --warn:#f0b35a; --blue:#6ea8ff; --err:#f87171;
+  --chip:#263140; --chipOn:#1f6ece; --chipText:#e5e9f0; --tint:#1c2a3a; --flow:#2f7fd6; --chev:#e6f1ff; --tube:#3c4d63; --fill:#2a5f99;
+  --hlChg:#6b5710; --hlChgBar:#facc15; --hlA:#6b2a2f; --hlABar:#f87171; --hlB:#21553a; --hlBBar:#4ade80;
+  }
+}
+:root[data-theme="dark"]{ color-scheme:dark;
+  --bg:#10151c; --panel:#18202a; --ink:#e5e9f0; --muted:#9aa5b4; --line:#404d5f; --bag:#1f2b38; --bagStroke:#66788e;
+  --accent:#4da3ff; --accentFill:#1f6ece; --dest:#f0a63a; --destFill:#b45309; --ok:#4ade80; --okFill:#15803d; --warn:#f0b35a; --blue:#6ea8ff; --err:#f87171;
+  --chip:#263140; --chipOn:#1f6ece; --chipText:#e5e9f0; --tint:#1c2a3a; --flow:#2f7fd6; --chev:#e6f1ff; --tube:#3c4d63; --fill:#2a5f99;
+  --hlChg:#6b5710; --hlChgBar:#facc15; --hlA:#6b2a2f; --hlABar:#f87171; --hlB:#21553a; --hlBBar:#4ade80;
 }
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
@@ -111,15 +122,11 @@ table.grid th{position:sticky;top:0;background:var(--tint);z-index:1;border-bott
 table.grid td,table.grid th{padding:6px 8px;font-size:13px;vertical-align:top;border-bottom:1px solid var(--line)}
 table.grid tr.click{cursor:pointer}
 table.grid tr.click:hover{background:var(--tint)}
-td.chg{background:rgba(250,204,21,.28)}
-tr.onlyA td{background:rgba(220,38,38,.10)}
-tr.onlyB td{background:rgba(22,163,74,.12)}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 .toolbar input[type=text]{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;min-width:220px}
 .toolbar .grow{flex:1}
 .sum{display:grid;grid-template-columns:200px 1fr 1fr;gap:4px 12px;font-size:13px;margin:0 0 12px}
 .sum div.h{font-weight:600}
-.sum div.d{background:rgba(250,204,21,.28);border-radius:4px;padding:0 4px}
 .warnmark{color:var(--err);font-weight:700}
 ul.chg{margin:6px 0 0 18px;padding:0;font-size:13px}
 @media print{ #tabs,#subtabs,#vSteps,#vOverview,#vInfo,#vCompare{display:none !important} }
@@ -139,15 +146,11 @@ table.grid th{position:sticky;top:0;background:var(--tint);z-index:1;border-bott
 table.grid td,table.grid th{padding:6px 8px;font-size:13px;vertical-align:top;border-bottom:1px solid var(--line)}
 table.grid tr.click{cursor:pointer}
 table.grid tr.click:hover{background:var(--tint)}
-td.chg{background:rgba(250,204,21,.28)}
-tr.onlyA td{background:rgba(220,38,38,.10)}
-tr.onlyB td{background:rgba(22,163,74,.12)}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 .toolbar input[type=text]{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;min-width:220px}
 .toolbar .grow{flex:1}
 .sum{display:grid;grid-template-columns:200px 1fr 1fr;gap:4px 12px;font-size:13px;margin:0 0 12px}
 .sum div.h{font-weight:600}
-.sum div.d{background:rgba(250,204,21,.28);border-radius:4px;padding:0 4px}
 .warnmark{color:var(--err);font-weight:700}
 ul.chg{margin:6px 0 0 18px;padding:0;font-size:13px}
 @media print{ #tabs,#subtabs,#vSteps,#vOverview,#vInfo,#vCompare{display:none !important} }
@@ -191,6 +194,33 @@ td.dem{font-size:12px;color:var(--muted);min-width:200px}
   #prepTable input{border:0;background:none;padding:0;width:auto;font-weight:700;-moz-appearance:textfield;appearance:textfield}
   #prepTable input::-webkit-outer-spin-button,#prepTable input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 }
+
+/* ---- colour overrides (contrast-checked in light and dark; later rules win) ---- */
+button.primary,.btn.primary{background:var(--accentFill);color:#fff;border-color:var(--accentFill)}
+td.chg{background:var(--hlChg);box-shadow:inset 4px 0 0 var(--hlChgBar)}
+tr.onlyA td{background:var(--hlA)}
+tr.onlyA td:first-child{box-shadow:inset 4px 0 0 var(--hlABar);font-weight:600}
+tr.onlyB td{background:var(--hlB)}
+tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
+.sum div.d{background:var(--hlChg);box-shadow:inset 4px 0 0 var(--hlChgBar);border-radius:4px;padding:0 6px}
+.msgline::before{display:inline-block;width:1.3em;font-weight:700}
+.msgline.err::before{content:"\2716\FE0E"}
+.msgline.warn::before{content:"\26A0\FE0E"}
+.msgline.info::before{content:"\2139\FE0E"}
+@media (forced-colors: active){
+  .tab,.pill,.chip2,.tag,.fl,button,input,select{border:1px solid ButtonText}
+  .tab.on,.pill.on,.row.cur{outline:3px solid Highlight}
+  td.chg,tr.onlyA td:first-child,tr.onlyB td:first-child{outline:2px solid Highlight}
+}
+@media print{
+  :root,:root[data-theme]{ color-scheme:light;
+  --bg:#f6f8fb; --panel:#ffffff; --ink:#1f2937; --muted:#626875; --line:#aebdd0; --bag:#eef3f9; --bagStroke:#788ba6;
+  --accent:#196ab2; --accentFill:#1b70bd; --dest:#9d5604; --destFill:#a75c05; --ok:#107837; --okFill:#107837; --warn:#a84d08; --blue:#1c5cea; --err:#ca2121;
+  --chip:#e5eaf1; --chipOn:#1b70bd; --chipText:#1f2937; --tint:#e8f1fb; --flow:#5bb0ff; --chev:#0b4f9c; --tube:#babfd9; --fill:#9bd0ff;
+  --hlChg:#ffe49a; --hlChgBar:#9a6108; --hlA:#fbcaca; --hlABar:#b91c1c; --hlB:#c4ebd0; --hlBBar:#15803d;
+  }
+  body{background:#fff;color:#000}
+}
 </style>
 </head>
 <body>
@@ -203,6 +233,7 @@ td.dem{font-size:12px;color:var(--muted);min-width:200px}
     <label class="btn primary" for="file">Open protocol(s) (.json)</label>
     <input type="file" id="file" accept=".json,application/json" multiple class="hide">
     <button id="ex">Load example</button>
+    <button id="themeBtn" title="Colours follow your Windows / browser setting (Auto). Click to force Light or Dark.">Theme: Auto</button>
     <button id="helpBtn">Help</button>
   </div>
 </header>
@@ -245,7 +276,8 @@ td.dem{font-size:12px;color:var(--muted);min-width:200px}
         <li>Where a protocol gives a volume as a range or text (for example "30-200 mL"), you must enter the real volume or mark it as varying. In Advanced mode the ranges come from running the protocol at the low and high ends of the inputs you tick (all combinations for up to four inputs); this is a practical envelope, not a proof that no other combination is worse.</li>
         <li>Tubing volumes (including the line between the kit and the bag) are not included, so a small amount of extra liquid may be needed for priming and flushing. Liquid you add to a bag during a prompt (for example rinse buffer) is also unknown to the page.</li>
         <li>Air pushed into a bag is assumed to stay there (a worst case). The bubble sensor notes are based on an assumed reading of the sensor names and are only hints.</li>
-        <li>The kit drawing is a schematic, not to scale. The kit (isolation or bead removal) is detected from the protocol.</li></ul></div>
+        <li>The kit drawing is a schematic, not to scale. The kit (isolation or bead removal) is detected from the protocol.</li>
+        <li>Colours follow your Windows or browser light/dark setting. If anything is hard to read, use the <b>Theme</b> button in the header to switch between Auto, Light and Dark.</li></ul></div>
     </div>
   </section>
 
@@ -364,7 +396,7 @@ td.dem{font-size:12px;color:var(--muted);min-width:200px}
 
 const PAL = {ink:'var(--ink)',muted:'var(--muted)',line:'var(--line)',bag:'var(--bag)',bagStroke:'var(--bagStroke)',
   accent:'var(--accent)',dest:'var(--dest)',ok:'var(--ok)',blue:'var(--blue)',panel:'var(--panel)',
-  flow:'var(--flow)',chev:'var(--chev)',tube:'var(--tube)',fill:'var(--fill)',err:'var(--err)'};
+  flow:'var(--flow)',chev:'var(--chev)',tube:'var(--tube)',fill:'var(--fill)',err:'var(--err)',accentFill:'var(--accentFill)',destFill:'var(--destFill)',okFill:'var(--okFill)'};
 
 function num(x){ const v=parseFloat(x); return isNaN(v)?0:v; }
 function asArr(x){ return Array.isArray(x)?x:(x?[x]:[]); }
@@ -696,7 +728,7 @@ function nameSvg(x,y,nm,max,used,P,big){
   return t+'</g>';
 }
 function kitSvg(m,idx,P,kitId,L){
-  P=Object.assign({chev:'var(--chev)',tube:'var(--tube)',fill:'var(--fill)',err:'var(--err)'},P||PAL);
+  P=Object.assign({chev:'var(--chev)',tube:'var(--tube)',fill:'var(--fill)',err:'var(--err)',accentFill:'var(--accentFill)',destFill:'var(--destFill)',okFill:'var(--okFill)'},P||PAL);
   kitId=kitId||guessKit(m); const kit=KITS[kitId];
   L=L||computeLedger(m,kitId);
   const st=idx>=0? m.steps[idx] : null, c=st? calc(m,st) : null;
@@ -758,8 +790,8 @@ function kitSvg(m,idx,P,kitId,L){
   // line boxes (on top)
   Object.keys(kit.lines).forEach(k=>{ const ln=kit.lines[k], p=tp(ln.box[0],ln.box[1]);
     const isFrom=st&&k===st.from, isTo=st&&k===st.to, known=lineUsed(k);
-    const fill=isFrom?P.accent:(isTo?P.dest:P.panel), txt=(isFrom||isTo)?'#ffffff':P.accent;
-    g+='<g opacity="'+(known?1:0.4)+'"><rect x="'+(p[0]-17)+'" y="'+(p[1]-15)+'" width="34" height="30" rx="7" fill="'+fill+'" stroke="'+(isFrom?P.accent:(isTo?P.dest:P.accent))+'" stroke-width="2"/>'
+    const fill=isFrom?P.accentFill:(isTo?P.destFill:P.panel), txt=(isFrom||isTo)?'#ffffff':P.accent;
+    g+='<g opacity="'+(known?1:0.4)+'"><rect x="'+(p[0]-17)+'" y="'+(p[1]-15)+'" width="34" height="30" rx="7" fill="'+fill+'" stroke="'+(isFrom?P.accentFill:(isTo?P.destFill:P.accent))+'" stroke-width="2"/>'
       +'<text x="'+p[0]+'" y="'+(p[1]+6)+'" font-size="17" font-weight="700" text-anchor="middle" fill="'+txt+'">'+k+'</text></g>';
     if(isFrom||isTo){ const col=isFrom?P.accent:P.dest;
       g+='<rect x="'+(p[0]-19)+'" y="'+(p[1]+19)+'" width="38" height="14" rx="7" fill="'+P.panel+'" stroke="'+col+'" stroke-width="1.5"/><text x="'+p[0]+'" y="'+(p[1]+30)+'" font-size="9" font-weight="700" text-anchor="middle" fill="'+col+'">'+(isFrom?'FROM':'TO')+'</text>'; }
@@ -777,7 +809,7 @@ function rockerSvg(st,P){
   if(st.rocking&&a0!==null) g+='<g transform="rotate('+(-a0)+')" opacity="0.3"><rect x="-110" y="-7" width="220" height="14" rx="4" fill="'+P.bagStroke+'"/></g>';
   g+='<g transform="rotate('+(-ang)+')"><rect x="-110" y="-7" width="220" height="14" rx="4" fill="'+P.bagStroke+'"/><rect x="-90" y="-30" width="180" height="23" rx="9" fill="'+P.bag+'" stroke="'+P.bagStroke+'" stroke-width="2"/></g>';
   g+='<polygon points="-14,42 14,42 0,8" fill="'+P.muted+'" opacity="0.6"/>';
-  g+= mg ? '<rect x="-34" y="16" width="68" height="20" rx="4" fill="'+P.ok+'"/><text x="0" y="30" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">MAGNET</text>'
+  g+= mg ? '<rect x="-34" y="16" width="68" height="20" rx="4" fill="'+(P.okFill||P.ok)+'"/><text x="0" y="30" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">MAGNET</text>'
          : '<rect x="-34" y="52" width="68" height="20" rx="4" fill="none" stroke="'+P.bagStroke+'" stroke-width="2" stroke-dasharray="5 4"/><text x="0" y="66" font-size="11" text-anchor="middle" fill="'+P.muted+'">MAGNET</text>';
   g+='</g>';
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 160" role="img" aria-label="Rocker and magnet">'+g+'</svg>';
@@ -1000,6 +1032,12 @@ const P=[];                       // opened protocols: {id,label,M,cur,kitId,vie
 let M=null, cur=0, kitId='iso', L=null, ENV=null, active=-1, nextId=1, view='steps', helpOpen=false, advMode=false;
 function refresh(){ L=computeLedger(M,kitId); ENV=computeEnvelope(M,kitId,L); }
 const $=id=>document.getElementById(id);
+// theme: Auto follows the system (for example Windows dark mode); Light / Dark force it
+let theme='auto'; try{ theme=localStorage.getItem('dcviewer-theme')||'auto'; }catch(e){}
+function applyTheme(){ const r=document.documentElement; if(theme==='light'||theme==='dark') r.setAttribute('data-theme',theme); else r.removeAttribute('data-theme');
+  $('themeBtn').textContent='Theme: '+(theme==='light'?'Light':(theme==='dark'?'Dark':'Auto')); }
+$('themeBtn').addEventListener('click',()=>{ theme= theme==='auto'? 'light' : (theme==='light'? 'dark' : 'auto'); try{ localStorage.setItem('dcviewer-theme',theme); }catch(e){} applyTheme(); });
+applyTheme();
 function showMsg(t){ $('msg').textContent=t||''; }
 function shortStatus(b){ if(b.status==='OK') return 'OK'; if(b.issues.indexOf('Runs out')>=0) return 'Runs out'; if(b.issues.some(x=>x.indexOf('Over')===0)) return 'Over capacity'; return 'Not stated'; }
 function statusClass(b){ return b.status==='OK'?'st-ok':((b.issues.indexOf('Runs out')>=0||b.issues.some(x=>x.indexOf('Over')===0))?'st-bad':'st-warn'); }
