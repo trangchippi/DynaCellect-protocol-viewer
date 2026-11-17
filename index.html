@@ -221,12 +221,27 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
   }
   body{background:#fff;color:#000}
 }
+
+/* ---- v0.6: stable layout on laptop screens ---- */
+:root{--navH:50px}
+#vSteps .nav{position:sticky;top:0;z-index:30;background:var(--bg);padding:8px 0;margin:0 0 8px;border-bottom:1px solid var(--line)}
+#rockcard{padding:10px}
+@media (min-width:761px){
+  #left{top:calc(var(--navH) + 6px);max-height:calc(100vh - var(--navH) - 16px)}
+  #midcol{position:sticky;top:calc(var(--navH) + 6px);align-self:start}
+  #kitsvg svg{max-height:calc(100vh - var(--navH) - 200px)}
+  #steplist{max-height:300px}
+  #rocker svg{max-width:170px}
+}
+#restoreBar{border-color:var(--accent);margin:10px 0}
+#restoreBar .btnrow{margin-top:6px}
+@media print{ #restoreBar,#saveNote{display:none !important} }
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>DynaCellect protocol viewer <span class="ver">prototype v0.5</span></h1>
+    <h1>DynaCellect protocol viewer <span class="ver">prototype v0.6</span></h1>
     <div class="sub" id="pinfo">Open one or more protocol .json files, or try the built-in example.</div>
   </div>
   <div>
@@ -234,7 +249,12 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
     <input type="file" id="file" accept=".json,application/json" multiple class="hide">
     <button id="ex">Load example</button>
     <button id="themeBtn" title="Colours follow your Windows / browser setting (Auto). Click to force Light or Dark.">Theme: Auto</button>
-    <button id="helpBtn">Help</button>
+    <button id="helpBtn">Help</button><br>
+    <button id="saveSess" title="Download all open protocols and your entries as one file you can keep or send to a colleague">Save session</button>
+    <label class="btn" for="sessFile" title="Open a session file saved earlier">Load session</label>
+    <input type="file" id="sessFile" accept=".json,application/json" class="hide">
+    <button id="clearAll" title="Close all protocols and delete the copy saved in this browser">Clear all</button>
+    <div class="note" id="saveNote" style="text-align:right;margin-top:4px"></div>
   </div>
 </header>
 <main>
@@ -245,6 +265,10 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
         <ul><li>Click <b>Open protocol(s)</b> or drop one or more DynaCellect <code>.json</code> files on the page. Each protocol gets its own tab at the top; use the &times; to close it.</li>
         <li><b>Load example</b> opens a small built-in protocol so you can look around.</li>
         <li>Everything happens on your computer; no file is uploaded. Rotea protocols are not supported yet.</li></ul></div>
+      <div><h3>Saving your work</h3>
+        <ul><li>The page <b>autosaves</b> your open protocols and entries in this browser (on this computer only). If you close the page by accident, reopen the same file and click <b>Restore it</b>.</li>
+        <li>Browser storage belongs to this browser and this file location. For a backup, or to share with a colleague, use <b>Save session</b>: it makes one file that holds the protocols and your values. Open it with <b>Load session</b> (or drop it on the page) on any computer.</li>
+        <li><b>Clear all</b> closes everything and deletes the saved copy. Use it on a shared computer.</li></ul></div>
       <div><h3>2. Data entries</h3>
         <ul><li>If the protocol has data entries (for example a dilution volume), type your values in the box under the tabs. Volumes, times and bag needs update straight away.</li>
         <li>They start at each entry's minimum value, so set them to your run before reading any numbers.</li></ul></div>
@@ -281,6 +305,12 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
     </div>
   </section>
 
+  <div id="restoreBar" class="card hide">
+    <b>A saved session was found in this browser.</b>
+    <div class="note" id="restoreInfo"></div>
+    <div class="note">Autosave is paused until you choose.</div>
+    <div class="btnrow"><button id="restoreYes" class="primary">Restore it</button><button id="restoreNo">Start fresh (delete it)</button></div>
+  </div>
   <div id="drop">Drop DynaCellect protocol .json files here (one or several)<br><span class="note">Everything stays on your computer; nothing is uploaded.</span></div>
   <div id="msg"></div>
   <div id="app" class="hide">
@@ -306,7 +336,7 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
           <div class="card" id="rockcard"><h2>Rocker &amp; magnet</h2><div id="rocker"></div><dl class="mini" id="rockdl"></dl></div>
           <div class="card" id="listcard"><h2>Steps</h2><div id="steplist"></div></div>
         </aside>
-        <section>
+        <section id="midcol">
           <div class="card">
             <div class="kitbar"><h2 style="margin:0">Fluid path <span class="sub" id="kitname"></span></h2></div>
             <div id="kitsvg"></div>
@@ -1053,7 +1083,7 @@ $('helpClose').addEventListener('click',()=>setHelp(false));
 $('discHelp').addEventListener('click',()=>setHelp(true));
 
 // ---------- opening files ----------
-function addProtocol(text,label){
+function addProtocol(text,label,saved){
   let root;
   try{ root=JSON.parse(text.replace(/^\uFEFF/,'')); }catch(e){ showMsg((label||'File')+': not valid JSON ('+e.message+').'); return false; }
   const m=parseProtocol(root);
@@ -1061,15 +1091,17 @@ function addProtocol(text,label){
   if(m.kind!=='dyna'){ showMsg((label||'File')+': this does not look like a DynaCellect protocol file.'); return false; }
   let name=label||m.name, n=2; const base=name;
   while(P.some(p=>p.label===name)) name=base+' ('+(n++)+')';
-  P.push({id:nextId++,label:name,M:m,cur:0,kitId:guessKit(m),view:'steps'});
+  const ent={id:nextId++,label:name,M:m,raw:text,cur:0,kitId:guessKit(m),view:'steps'};
+  if(saved) applySaved(ent,saved);
+  P.push(ent);
   return true;
 }
 function openFiles(files){
   const list=[...files]; if(!list.length) return; showMsg('');
   let pending=list.length, okCount=0;
   list.forEach(f=>{ const r=new FileReader();
-    r.onload=()=>{ if(addProtocol(r.result,f.name.replace(/\.json$/i,''))) okCount++; if(--pending===0){ if(okCount) activate(P.length-1); else renderTabs(); } };
-    r.onerror=()=>{ showMsg('Could not read '+f.name); if(--pending===0&&okCount) activate(P.length-1); };
+    r.onload=()=>{ if(isSessionText(r.result)){ okCount+=loadSessionText(r.result); } else if(addProtocol(r.result,f.name.replace(/\.json$/i,''))) okCount++; if(--pending===0) finishOpen(okCount); };
+    r.onerror=()=>{ showMsg('Could not read '+f.name); if(--pending===0) finishOpen(okCount); };
     r.readAsText(f); });
 }
 function loadText(text,label){ if(addProtocol(text,label)){ showMsg(''); activate(P.length-1); } }
@@ -1098,7 +1130,7 @@ function renderTabs(){
 function closeProtocol(i){
   if(!confirm('Close "'+P[i].label+'"? Your edits to its data entries and bag volumes will be lost.')) return;
   saveActive(); const wasCompare=(active==='compare');
-  P.splice(i,1);
+  P.splice(i,1); scheduleSave();
   if(!P.length){ active=-1; M=null; $('app').classList.add('hide'); $('drop').classList.remove('hide'); $('pinfo').textContent='Open one or more protocol .json files, or try the built-in example.'; return; }
   if(wasCompare){ active='compare'; renderTabs(); setView('compare'); return; }
   activate(Math.min(i,P.length-1));
@@ -1110,11 +1142,13 @@ function setView(v){
   ['steps','list','prep','info','compare'].forEach(n=>{ const id='v'+n.charAt(0).toUpperCase()+n.slice(1); $(id).classList.toggle('hide', n!==v); });
   document.querySelectorAll('#subtabs .pill').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $('inputsBox').classList.toggle('hide', isCmp||!M||M.entries.length===0||v==='info');
-  if(v==='compare') renderCompare(); else renderView();
+  resetHeight();
+  if(v==='compare'){ renderCompare(); scheduleSave(); } else renderView();
 }
 function renderView(){
   refresh();
   if(view==='steps') renderAll(); else if(view==='list') renderList(); else if(view==='prep') renderPrep(); else if(view==='info') renderInfo();
+  scheduleSave();
 }
 document.querySelectorAll('#subtabs .pill').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
 
@@ -1145,7 +1179,7 @@ function renderAll(){
   document.querySelectorAll('#steplist .row').forEach((r,i)=>{ r.classList.toggle('cur',i===cur);
     const bad=r.querySelector('.fl.bad'); if(bad) bad.classList.toggle('hide', !L.steps[i].notes.some(n=>n.lvl!=='info'));
     const vr=r.querySelector('.fl.var'); if(vr) vr.classList.toggle('hide', !(ENV.has&&ENV.steps[i].dep)); });
-  const row=document.querySelector('#steplist .row.cur'); if(row&&row.scrollIntoView) row.scrollIntoView({block:'nearest'});
+  keepRowVisible();
   const tl=$('tl'); tl.innerHTML=''; const total=L.total;
   M.steps.forEach((s,i)=>{ const d=document.createElement('div'); const t=L.steps[i].time; const w=Math.max(t,total*0.01);
     d.style.flex=(w||1)+' 1 0'; d.className=(i===cur?'cur ':'')+(s.prompt.on?'pr':''); d.title='Step '+s.n+': '+fmtTime(t);
@@ -1153,7 +1187,7 @@ function renderAll(){
   const upper=L.keys.some(k=>startUnknown(M,k)&&L.dryOut[k]);
   $('tltext').textContent='Estimated automatic time: '+fmtTime(total)+' (prompts and waiting for the user are not included)'+(upper? '. Steps that end when a bag runs dry are counted at the volume they ask for, because that bag start volume is not stated, so this is an upper estimate.' : '');
   $('pos').textContent='Step '+(cur+1)+' of '+M.steps.length;
-  renderDetail(); renderBagStatus();
+  renderDetail(); renderBagStatus(); fitNav(); holdHeight(); scheduleSave();
 }
 function renderRocker(){
   const s=M.steps[cur], t=L.steps[cur].time;
@@ -1397,7 +1431,7 @@ $('cmpDiff').addEventListener('change',()=>renderCompare());
 $('cmpCopy').addEventListener('click',()=>{ if(cmpLast) copyText(cmpLast.changes.join('\n'),'cmpMsg'); });
 
 // ---------- buttons and keys ----------
-function step(d){ if(!M||view!=='steps'||active==='compare') return; cur=Math.min(M.steps.length-1,Math.max(0,cur+d)); renderAll(); }
+function step(d){ if(!M||view!=='steps'||active==='compare') return; alignSteps_(); cur=Math.min(M.steps.length-1,Math.max(0,cur+d)); renderAll(); }
 $('prev').addEventListener('click',()=>step(-1));
 $('next').addEventListener('click',()=>step(1));
 $('sensorStart').addEventListener('change',e=>{ if(M){ M.simStart=e.target.value; renderView(); } });
@@ -1418,6 +1452,124 @@ const drop=$('drop');
 ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
 document.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files) openFiles(e.dataTransfer.files); });
+
+// ---------- v0.6: keep the page still, autosave, sessions ----------
+function keepRowVisible(){
+  // scroll only the step list, never the page
+  const lst=$('steplist'), row=lst&&lst.querySelector('.row.cur'); if(!row) return;
+  const lr=lst.getBoundingClientRect(), rr=row.getBoundingClientRect(), pad=row.offsetHeight*1.5;
+  if(rr.top<lr.top+pad) lst.scrollTop-= (lr.top+pad-rr.top);
+  else if(rr.bottom>lr.bottom-pad) lst.scrollTop+= (rr.bottom-(lr.bottom-pad));
+}
+let stepsMinH=0;
+function holdHeight(){ // the page may grow while you click through steps but never shrink, so the scroll position cannot be pushed
+  const v=$('vSteps'); if(!v) return; const h=v.offsetHeight; if(h>stepsMinH){ stepsMinH=h; v.style.minHeight=h+'px'; } }
+function resetHeight(){ stepsMinH=0; const v=$('vSteps'); if(v) v.style.minHeight=''; }
+function fitNav(){ const n=document.querySelector('#vSteps .nav'); if(n&&n.offsetHeight) document.documentElement.style.setProperty('--navH', n.offsetHeight+'px'); }
+window.addEventListener('resize',fitNav);
+function alignSteps_(){
+  // one-time alignment when the controls and diagram would not both fit on screen; afterwards the page never moves
+  if(window.innerWidth<=760) return;
+  const n=document.querySelector('#vSteps .nav'), s=document.querySelector('#kitsvg svg'); if(!n||!s) return;
+  const nr=n.getBoundingClientRect(); if(nr.top<=1) return;
+  if(s.getBoundingClientRect().bottom>window.innerHeight) window.scrollTo(0,window.scrollY+nr.top);
+}
+
+const SKEY='dcviewer-session-v1';
+let restorePending=false, saveT=null, saveFailed=false, wantActive=null, wantAdv=null;
+function setSaveNote(t){ const n=$('saveNote'); if(n) n.textContent=t||''; }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function stamp(d){ d=d||new Date(); return d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+'-'+pad2(d.getHours())+pad2(d.getMinutes()); }
+function sessionObject(){
+  saveActive();
+  return {app:'dcviewer-session', v:1, saved:new Date().toISOString(),
+    active:(active==='compare'?'compare':(typeof active==='number'&&active>=0?active:0)), advMode:!!advMode,
+    protocols:P.map(p=>({label:p.label, raw:p.raw, cur:p.cur, kitId:p.kitId, view:p.view,
+      settings:{bagEdit:p.M.bagEdit, vary:p.M.vary, simStart:p.M.simStart, countAir:p.M.countAir, margin:p.M.margin,
+        entries:Object.fromEntries(p.M.entries.map(e=>[e.id,e.value]))}}))};
+}
+function scheduleSave(){ if(restorePending) return; clearTimeout(saveT); saveT=setTimeout(saveNow,500); }
+function saveNow(){
+  clearTimeout(saveT); saveT=null; if(restorePending) return;
+  try{
+    if(!P.length){ localStorage.removeItem(SKEY); saveFailed=false; setSaveNote(''); return; }
+    localStorage.setItem(SKEY,JSON.stringify(sessionObject()));
+    saveFailed=false; const d=new Date(); setSaveNote('Autosaved '+pad2(d.getHours())+':'+pad2(d.getMinutes()));
+  }catch(e){ saveFailed=true; setSaveNote('Autosave is not available in this browser. Use Save session to keep your work.'); }
+}
+window.addEventListener('pagehide',()=>{ if(saveT) saveNow(); });
+window.addEventListener('beforeunload',e=>{ if(saveFailed&&P.length){ e.preventDefault(); e.returnValue=''; } });
+
+function finite(x){ return typeof x==='number'&&isFinite(x); }
+function applySaved(ent,sv){
+  const m=ent.M, st=(sv&&sv.settings&&typeof sv.settings==='object')? sv.settings : {};
+  if(st.bagEdit&&typeof st.bagEdit==='object') Object.keys(st.bagEdit).forEach(k=>{ const v=st.bagEdit[k]; if(!(m.bags[k])||!v||typeof v!=='object') return;
+    const o={}; Object.keys(v).forEach(f=>{ if(finite(v[f])) o[f]=v[f]; }); if(Object.keys(o).length) m.bagEdit[k]=o; });
+  if(st.vary&&typeof st.vary==='object') ['bags','entries'].forEach(g=>{ const src=st.vary[g]; if(!src||typeof src!=='object') return;
+    Object.keys(src).forEach(id=>{ const x=src[id]; if(x&&typeof x==='object'&&finite(x.lo)&&finite(x.hi)) m.vary[g][id]={on:!!x.on,lo:x.lo,hi:x.hi}; }); });
+  if(st.simStart==='Dry'||st.simStart==='Wet') m.simStart=st.simStart;
+  if(typeof st.countAir==='boolean') m.countAir=st.countAir;
+  if(finite(st.margin)&&st.margin>=0) m.margin=st.margin;
+  if(st.entries&&typeof st.entries==='object') m.entries.forEach(e=>{ if(finite(st.entries[e.id])) e.value=st.entries[e.id]; });
+  if(finite(sv.cur)) ent.cur=Math.min(m.steps.length-1,Math.max(0,Math.round(sv.cur)));
+  if(sv.kitId&&KITS[sv.kitId]) ent.kitId=sv.kitId;
+  if(['steps','list','prep','info'].indexOf(sv.view)>=0) ent.view=sv.view;
+}
+function isSessionText(txt){ return /^\s*\{\s*"app"\s*:\s*"dcviewer-session"/.test(String(txt).slice(0,200)); }
+function loadSessionObject(s){
+  if(!s||s.app!=='dcviewer-session'||!Array.isArray(s.protocols)) return 0;
+  const base=P.length; let n=0, bad=0;
+  s.protocols.forEach(e=>{ if(e&&typeof e.raw==='string'&&addProtocol(e.raw,e.label||undefined,e)) n++; else bad++; });
+  if(n){ wantAdv=!!s.advMode;
+    wantActive= s.active==='compare' ? 'compare' : (finite(s.active)? base+Math.min(Math.max(0,Math.round(s.active)),Math.max(0,n-1)) : null); }
+  if(bad) showMsg(bad+' protocol(s) in the session could not be loaded.');
+  return n;
+}
+function loadSessionText(txt){
+  try{ return loadSessionObject(JSON.parse(txt.replace(/^\uFEFF/,''))); }
+  catch(e){ showMsg('Could not read the session file: '+e.message); return 0; }
+}
+function finishOpen(okCount){
+  if(!okCount){ renderTabs(); return; }
+  let t=P.length-1;
+  if(wantActive==='compare'&&P.length>=2) t='compare'; else if(finite(wantActive)&&wantActive<P.length) t=wantActive;
+  const adv=wantAdv; wantActive=null; wantAdv=null;
+  activate(t);
+  if(adv!==null&&adv!==advMode) setMode(adv);
+}
+function readStored(){ try{ const s=localStorage.getItem(SKEY); if(!s) return null; const o=JSON.parse(s); return (o&&o.app==='dcviewer-session'&&Array.isArray(o.protocols)&&o.protocols.length)? o : null; }catch(e){ return null; } }
+function showRestoreBar(o){
+  restorePending=true;
+  const names=o.protocols.map(p=>p.label).join(', '); let when='';
+  try{ when=', last saved '+new Date(o.saved).toLocaleString(); }catch(e){}
+  $('restoreInfo').textContent=o.protocols.length+' protocol'+(o.protocols.length>1?'s':'')+': '+names+when;
+  $('restoreBar').classList.remove('hide');
+}
+$('restoreYes').addEventListener('click',()=>{
+  const o=readStored(); restorePending=false; $('restoreBar').classList.add('hide');
+  if(!o){ showMsg('The saved session could not be read.'); return; }
+  const n=loadSessionObject(o); finishOpen(n); saveNow();
+});
+$('restoreNo').addEventListener('click',()=>{
+  if(!confirm('Delete the saved session from this browser?')) return;
+  try{ localStorage.removeItem(SKEY); }catch(e){}
+  restorePending=false; $('restoreBar').classList.add('hide'); saveNow();
+});
+$('saveSess').addEventListener('click',()=>{
+  if(!P.length){ showMsg('Open a protocol first; there is nothing to save yet.'); return; }
+  showMsg(''); download('dcviewer-session-'+stamp()+'.json',JSON.stringify(sessionObject(),null,1),'application/json');
+});
+$('sessFile').addEventListener('change',e=>{ openFiles(e.target.files); e.target.value=''; });
+$('clearAll').addEventListener('click',()=>{
+  if(!P.length&&!readStored()) return;
+  if(!confirm('Close all protocols and delete the copy saved in this browser?\n\nTip: click Save session first if you want to keep a copy.')) return;
+  P.length=0; active=-1; M=null; showMsg('');
+  try{ localStorage.removeItem(SKEY); }catch(e){}
+  restorePending=false; $('restoreBar').classList.add('hide');
+  $('app').classList.add('hide'); $('drop').classList.remove('hide');
+  $('pinfo').textContent='Open one or more protocol .json files, or try the built-in example.'; renderTabs(); setSaveNote('');
+});
+(function(){ const o=readStored(); if(o) showRestoreBar(o); })();
 </script>
 </body>
 </html>
