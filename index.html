@@ -226,35 +226,74 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
 :root{--navH:50px}
 #vSteps .nav{position:sticky;top:0;z-index:30;background:var(--bg);padding:8px 0;margin:0 0 8px;border-bottom:1px solid var(--line)}
 #rockcard{padding:10px}
-@media (min-width:761px){
+#steplist{max-height:300px}
+#rocker svg{max-width:170px}
+@media (min-width:1051px) and (max-width:1180px){
+  .grid3{grid-template-columns:minmax(170px,200px) minmax(0,1.5fr) minmax(250px,300px)}
+  .grid3>.right{grid-column:auto;display:block}
+  .grid3>.right .card{margin-bottom:16px}
+}
+@media (min-width:1051px) and (min-height:600px){
   #left{top:calc(var(--navH) + 6px);max-height:calc(100vh - var(--navH) - 16px)}
   #midcol{position:sticky;top:calc(var(--navH) + 6px);align-self:start}
-  #kitsvg svg{max-height:calc(100vh - var(--navH) - 200px)}
-  #steplist{max-height:300px}
-  #rocker svg{max-width:170px}
+  #kitsvg svg{max-height:max(260px,calc(100vh - var(--navH) - 200px))}
 }
+@media (max-width:1050px), (max-height:599px){
+  #left{position:static;max-height:none}
+  #midcol{position:static}
+  #kitsvg svg{max-height:70vh}
+}
+/* header */
+.hdrbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.menu{position:relative;display:inline-block}
+.menu>summary{list-style:none;cursor:pointer;display:inline-block}
+.menu>summary::-webkit-details-marker{display:none}
+.menupop{position:absolute;right:0;top:calc(100% + 4px);z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;min-width:250px;box-shadow:0 6px 20px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:2px}
+.menupop button{text-align:left;border:none;background:transparent;padding:8px 10px;white-space:normal}
+.menupop button:hover{background:var(--tint)}
+/* data entries stand out */
+#inputsBox{border:2px solid var(--accent);background:var(--tint);padding:12px 14px}
+#inputsBox summary{font-size:16px;font-weight:700}
+#inputsBox .de{font-size:14px;font-weight:600}
+#inputsBox .de input{width:108px;font-size:16px;font-weight:600;padding:6px 8px;border:2px solid var(--accent);border-radius:8px}
+#inputsBox .de .note{font-weight:400}
+#deHint{margin-top:8px;font-size:13px;color:var(--ink)}
+/* Compare tab: a different colour, kept quiet */
+:root{--cmp:#6b46c1;--cmpBg:#f0ebfb;--cmpLine:#b9a7e6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cmp:#b79cff;--cmpBg:#2b2345;--cmpLine:#5a4a8f}}
+:root[data-theme="dark"]{--cmp:#b79cff;--cmpBg:#2b2345;--cmpLine:#5a4a8f}
+.tab.cmp{background:var(--cmpBg);border-color:var(--cmpLine)}
+.tab.cmp.on{background:var(--panel);border-color:var(--cmp);box-shadow:inset 0 3px 0 var(--cmp)}
+#vCompare{border-top:3px solid var(--cmp)}
+/* bag preparation table: fixed columns so nothing shifts while you type */
+#prepTable{table-layout:fixed;width:100%}
+#prepTable th,#prepTable td{vertical-align:middle}
+#prepTable th.num,#prepTable td.num{text-align:right}
+#prepTable th.ctr,#prepTable td.ctr{text-align:center}
+#prepTable td.chk{white-space:normal;overflow-wrap:anywhere}
+#prepTable td.dem,#prepTable td.note{overflow-wrap:anywhere}
+#prepTable input{width:100%;max-width:96px;text-align:right}
 #restoreBar{border-color:var(--accent);margin:10px 0}
 #restoreBar .btnrow{margin-top:6px}
-@media print{ #restoreBar,#saveNote{display:none !important} }
+@media print{ #restoreBar,#saveNote,.menu{display:none !important} }
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>DynaCellect protocol viewer <span class="ver">prototype v0.6</span></h1>
-    <div class="sub" id="pinfo">Open one or more protocol .json files, or try the built-in example.</div>
+    <h1>DynaCellect protocol viewer <span class="ver">prototype v0.7</span></h1>
+    <div class="sub"><span id="pinfo">Open one or more protocol .json files, or try the built-in example.</span> <span class="note" id="saveNote"></span></div>
   </div>
-  <div>
-    <label class="btn primary" for="file">Open protocol(s) (.json)</label>
+  <div class="hdrbtns">
+    <label class="btn primary" for="file" title="Open DynaCellect protocol .json files, or a session file you saved earlier">Open file(s)</label>
     <input type="file" id="file" accept=".json,application/json" multiple class="hide">
-    <button id="ex">Load example</button>
+    <details id="sessMenu" class="menu"><summary class="btn" title="Save your work to a file, or clear it">Session &#9662;</summary>
+      <div class="menupop">
+        <button id="saveSess" title="Download all open protocols and your entries as one file you can keep or send to a colleague. Open it again with Open file(s).">Save session to file</button>
+        <button id="clearAll" title="Close all protocols and delete the copy autosaved in this browser">Clear all and delete autosave</button>
+      </div></details>
     <button id="themeBtn" title="Colours follow your Windows / browser setting (Auto). Click to force Light or Dark.">Theme: Auto</button>
-    <button id="helpBtn">Help</button><br>
-    <button id="saveSess" title="Download all open protocols and your entries as one file you can keep or send to a colleague">Save session</button>
-    <label class="btn" for="sessFile" title="Open a session file saved earlier">Load session</label>
-    <input type="file" id="sessFile" accept=".json,application/json" class="hide">
-    <button id="clearAll" title="Close all protocols and delete the copy saved in this browser">Clear all</button>
-    <div class="note" id="saveNote" style="text-align:right;margin-top:4px"></div>
+    <button id="helpBtn">Help</button>
   </div>
 </header>
 <main>
@@ -262,13 +301,13 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
     <div class="toolbar"><h2 style="margin:0">How to use this viewer</h2><span class="grow"></span><button id="helpClose" class="primary">Back</button></div>
     <div class="helpgrid">
       <div><h3>1. Open protocols</h3>
-        <ul><li>Click <b>Open protocol(s)</b> or drop one or more DynaCellect <code>.json</code> files on the page. Each protocol gets its own tab at the top; use the &times; to close it.</li>
-        <li><b>Load example</b> opens a small built-in protocol so you can look around.</li>
+        <ul><li>Click <b>Open file(s)</b> or drop one or more DynaCellect <code>.json</code> files (or a saved session file) on the page. Each protocol gets its own tab at the top; use the &times; to close it.</li>
+        <li>The built-in example is a complete CD3+ isolation protocol that uses every feature; its step descriptions explain what each step shows. <button id="exHelp" class="primary" style="padding:3px 10px">Open the example</button></li>
         <li>Everything happens on your computer; no file is uploaded. Rotea protocols are not supported yet.</li></ul></div>
       <div><h3>Saving your work</h3>
         <ul><li>The page <b>autosaves</b> your open protocols and entries in this browser (on this computer only). If you close the page by accident, reopen the same file and click <b>Restore it</b>.</li>
-        <li>Browser storage belongs to this browser and this file location. For a backup, or to share with a colleague, use <b>Save session</b>: it makes one file that holds the protocols and your values. Open it with <b>Load session</b> (or drop it on the page) on any computer.</li>
-        <li><b>Clear all</b> closes everything and deletes the saved copy. Use it on a shared computer.</li></ul></div>
+        <li>Browser storage belongs to this browser and this file location. For a backup, or to share with a colleague, use <b>Session &#9662; &rarr; Save session to file</b>: it makes one file that holds the protocols and your values. Open it again with <b>Open file(s)</b> (or drop it on the page) on any computer.</li>
+        <li><b>Session &#9662; &rarr; Clear all</b> closes everything and deletes the autosaved copy. Use it on a shared computer.</li></ul></div>
       <div><h3>2. Data entries</h3>
         <ul><li>If the protocol has data entries (for example a dilution volume), type your values in the box under the tabs. Volumes, times and bag needs update straight away.</li>
         <li>They start at each entry's minimum value, so set them to your run before reading any numbers.</li></ul></div>
@@ -311,7 +350,7 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
     <div class="note">Autosave is paused until you choose.</div>
     <div class="btnrow"><button id="restoreYes" class="primary">Restore it</button><button id="restoreNo">Start fresh (delete it)</button></div>
   </div>
-  <div id="drop">Drop DynaCellect protocol .json files here (one or several)<br><span class="note">Everything stays on your computer; nothing is uploaded.</span></div>
+  <div id="drop">Drop DynaCellect protocol .json files (or a saved session file) here, or click <b>Open file(s)</b><br><span class="note">Everything stays on your computer; nothing is uploaded.</span><div style="margin-top:12px"><button id="ex">Try the built-in example</button></div></div>
   <div id="msg"></div>
   <div id="app" class="hide">
     <div class="tabs" id="tabs"></div>
@@ -320,8 +359,9 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
       <button class="pill" data-v="prep">Bag preparation</button><button class="pill" data-v="info">Info</button>
     </div>
     <details id="inputsBox" class="card hide" open>
-      <summary>Data entries <span class="note">(type your values; volumes, times and bag needs update)</span></summary>
+      <summary>Data entries <span class="note">(set these to match your run; volumes, times and bag needs update)</span></summary>
       <div id="inputs" class="inl"></div>
+      <div id="deHint" class="hide"></div>
     </details>
 
     <section id="vSteps">
@@ -418,7 +458,7 @@ tr.onlyB td:first-child{box-shadow:inset 4px 0 0 var(--hlBBar);font-weight:600}
 </main>
 <footer class="disc" id="disc">Independent prototype for internal scientific use, not part of the instrument software. Results are estimates calculated from the protocol file (volume &divide; flow rate, or the set duration) and have been checked against only a few real runs; they are not validated and do not replace the instrument, the user guide or your own procedures. The drawings are schematics, not to scale. Files are read on your computer only; nothing is uploaded. <a id="discHelp">How to use / what it can and cannot do</a></footer>
 
-<script id="example" type="application/json">{"FixedData":{"TargetCellType":"CD3+"},"Metadata":{"Author":"ProtocolBuilder","Checksum":"d53401a441fcfe42c158368e19c3214f","CreatedBy":"","DateCreated":"20260929","DateSaved":"","DateTimeCreated":1790662331674,"ExperimentName":"","FileName":"TRANG-TRY","FirstCreatedVersion":"","LastDateTimeEdited":"20260929141211","LastRunDatetime":"","LastRunDuration":"","LongDescription":"","NameChecksum":"","NumberOfSteps":"6","ProgrammedBy":"","ProtocolName":"TRANG-TRY","ProtocolType":"Isolation","RecipeType":"UserCreated","SavedVersion":"","SchemaVersion":"1.0.2","TimeStamp":"141211","Username":""},"RunData":{"BeadStockConcentration":"","VolumeOfBeads":""},"Steps":[{"ChosenBags":["I","A"],"Connections":[{"con":"1","name":"I"},{"con":"2","name":"A"}],"Description":"","Label":"Step 1(1)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"prompt step1"},"Pumps":[{"Direction":"CCW","Duration":"","FlowRate":"150","Name":"1","Volume":"vb1","flowDirection":"I to A","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":1,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry_both","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["A","I"],"Connections":[{"con":"1","name":"A"},{"con":"2","name":"I"}],"Description":"","Label":"Step 1(2)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"50","Name":"1","Volume":"vb2","flowDirection":"A to I","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":2,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"DryToWet","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["I","A"],"Connections":[{"con":"1","name":"I"},{"con":"2","name":"A"}],"Description":"","Label":"Step 1(3)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CCW","Duration":"","FlowRate":"100","Name":"1","Volume":"vb3","flowDirection":"I to A","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":3,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry_2","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["",""],"Connections":[{"con":"1","name":""},{"con":"2","name":""}],"Description":"","Label":"Step 1(4)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"prompt step 4"},"Pumps":[{"Direction":"","Duration":"","FlowRate":"0","Name":"1","Volume":"","flowDirection":" to ","variableSet":false}],"Rocker":[{"AngleEnd":"30","AngleStart":"0","Duration":"30","Magnet":false,"RPM":"10","Rocking":true}],"SkipButton":true,"StepNumber":4,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"Timed Trigger","type":"Timer"}],"Valves":[{"Name":"1","Open":false},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":false},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["I","A"],"Connections":[{"con":"1","name":"I"},{"con":"2","name":"A"}],"Description":"","Label":"Step 1(5)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CCW","Duration":"vb4","FlowRate":"150","Name":"1","Volume":"","flowDirection":"I to A","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"0","Duration":"0","Magnet":false,"RPM":"10","Rocking":true}],"SkipButton":true,"StepNumber":5,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"Timed Trigger","type":"Timer"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["A","I"],"Connections":[{"con":"1","name":"A"},{"con":"2","name":"I"}],"Description":"","Label":"Step 1(6)","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"prompt step 6"},"Pumps":[{"Direction":"CW","Duration":"vb5","FlowRate":"100","Name":"1","Volume":"","flowDirection":"A to I","variableSet":true}],"Rocker":[{"AngleEnd":"30","AngleStart":"0","Duration":"0","Magnet":false,"RPM":"10","Rocking":true}],"SkipButton":true,"StepNumber":6,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"DryToWet_both","type":"BubbleSensor"}],"Valves":[{"Name":"1","Open":true},{"Name":"2","Open":false},{"Name":"3","Open":false},{"Name":"4","Open":false},{"Name":"5","Open":false},{"Name":"6","Open":false},{"Name":"7","Open":false},{"Name":"8","Open":false},{"Name":"9","Open":true},{"Name":"10","Open":false},{"Name":"11","Open":false}],"timePeriods":[{"Name":"Main"}]}],"bags":{"A":{"capacity":"","connectToValve":"","description":"","label":"Isolation bag","second_connection":"","selected":"","startingVolume":""},"B":{"capacity":"","connectToValve":"","description":"","label":"Media","second_connection":"","selected":"","startingVolume":""},"C":{"capacity":"","connectToValve":"","description":"","label":"Example","second_connection":"","selected":"","startingVolume":""},"D":{"capacity":"","connectToValve":"","description":"","label":"Maybe nothing","second_connection":"","selected":"","startingVolume":""},"E":{"capacity":"","connectToValve":"","description":"","label":"","second_connection":"","selected":"","startingVolume":""},"F":{"capacity":"","connectToValve":"","description":"","label":"","second_connection":"","selected":"","startingVolume":""},"G":{"capacity":"","connectToValve":"","description":"","label":"","second_connection":"","selected":"","startingVolume":"500"},"H":{"capacity":"","connectToValve":"","description":"BeadSite","label":"","second_connection":"","selected":"","startingVolume":""},"I":{"capacity":"","connectToValve":"","description":"","label":"Cells","second_connection":"","selected":"","startingVolume":"Variable 1"}},"dataEntry":[{"de1":{"Name":"Data Entry 1","max":"20000","min":"1","units":"mL"},"de2":{"Name":"Data Entry 2","max":"10","min":"1","units":"mL"},"de3":{"Name":"Data Entry 3","max":"10000","min":"1","units":"seconds"},"de4":{"Name":"Data Entry 4","max":"5000","min":"1","units":"seconds"}}],"variables":[{"vb1":{"Name":"Variable 1","dataentryvalue":"de1","fixedvalue":"10","operation":"+","types":"Volume","units":"mL"},"vb2":{"Name":"Variable 2","dataentryvalue":"de2","fixedvalue":"4","operation":"*","types":"Volume","units":"mL"},"vb3":{"Name":"Variable 3","dataentryvalue":"de1","fixedvalue":"0","operation":"","types":"Volume","units":"mL"},"vb4":{"Name":"Variable 4","dataentryvalue":"de3","fixedvalue":"10","operation":"+","types":"Time","units":"seconds"},"vb5":{"Name":"Variable 5","dataentryvalue":"de4","fixedvalue":"2","operation":"*","types":"Time","units":"seconds"}}]}</script>
+<script id="example" type="application/json">{"FixedData":{"TargetCellType":"CD3+"},"Metadata":{"Author":"Example","Checksum":"","CreatedBy":"","DateCreated":"20261119","DateSaved":"","DateTimeCreated":1795000000000,"ExperimentName":"","FileName":"EXAMPLE-CD3-ISOLATION","FirstCreatedVersion":"","LastDateTimeEdited":"20261119100000","LastRunDatetime":"","LastRunDuration":"","LongDescription":"Example protocol that shows the viewer's features","NameChecksum":"","NumberOfSteps":"23","ProgrammedBy":"","ProtocolName":"Example CD3+ isolation","ProtocolType":"Isolation","RecipeType":"UserCreated","SavedVersion":"","SchemaVersion":"1.0.2","TimeStamp":"100000","Username":""},"RunData":{"BeadStockConcentration":"","VolumeOfBeads":""},"Steps":[{"ChosenBags":[],"Connections":[],"Description":"Prompt step: the run pauses and shows this message. Check that the bags match the Bag preparation tab.","Label":"Start","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"Connect and label the bags as shown on the Bag preparation sheet, then press Continue."},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":1,"Step_Type":"Normal","Triggers":[{"Target":"5","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["E","B"],"Connections":[{"con":"1","name":"E"},{"con":"2","name":"B"}],"Description":"Priming: pumps a small volume until liquid reaches the bubble sensor (dry to wet). Lines B and E are two connections to the same bag, so no liquid is lost.","Label":"Prime buffer line","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"5","flowDirection":"E to B","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":2,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"DryToWet","type":"BubbleSensor"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["K","I"],"Connections":[{"con":"1","name":"K"},{"con":"2","name":"I"}],"Description":"Air step: air from the filter on line K pushes the liquid in the line to the supernatant bag, so the bubble sensor is dry again before the next priming step.","Label":"Clear line with air","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"10","flowDirection":"K to I","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":3,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["H","A"],"Connections":[{"con":"1","name":"H"},{"con":"2","name":"A"}],"Description":"Priming the bead line: 3 mL of bead suspension goes into the isolation bag. A pumped path must pass through the pump, so one line is on each side of it.","Label":"Prime bead line","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"50","Name":"1","Volume":"3","flowDirection":"H to A","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":4,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"DryToWet","type":"BubbleSensor"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["G","A"],"Connections":[{"con":"1","name":"G"},{"con":"2","name":"A"}],"Description":"Data entry step: the volume comes from the data entry Cell volume. Stops early if the cell bag runs dry (wet to dry, sensor 1). If you change Cell volume, set the Cell input bag volume on the Bag preparation tab to match.","Label":"Transfer cells","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"vb1","flowDirection":"G to A","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":5,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry","type":"BubbleSensor"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["E","A"],"Connections":[{"con":"1","name":"E"},{"con":"2","name":"A"}],"Description":"Volume = Cell volume x 1 (variable with a multiply operation).","Label":"Dilute cells","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"vb2","flowDirection":"E to A","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":6,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["J","A"],"Connections":[{"con":"1","name":"J"},{"con":"2","name":"A"}],"Description":"Air step: pushes air from the filter on line J into the isolation bag. No liquid moves; the air counts towards the bag capacity.","Label":"Air to isolation bag","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"20","flowDirection":"J to A","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":7,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["H","A"],"Connections":[{"con":"1","name":"H"},{"con":"2","name":"A"}],"Description":"Volume comes straight from the data entry Bead volume. Slow flow rate for the bead suspension. Try setting Bead volume to 10 mL: bag H then runs out and the Volume check on the Bag preparation tab flags it.","Label":"Add beads","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"20","Name":"1","Volume":"de2","flowDirection":"H to A","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":8,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"Rocking step. Duration = Incubation time / 15 (variable with a divide operation).","Label":"Mix beads and cells","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"30","AngleStart":"-30","Duration":"vb5","Magnet":false,"RPM":"20","Rocking":true}],"SkipButton":true,"StepNumber":9,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"Duration = Incubation time - 60 s (variable with a subtract operation). Prompt steps can also come after a timed step.","Label":"Incubate","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"Incubation finished. Check that the beads are evenly mixed, then press Continue."},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"15","AngleStart":"-15","Duration":"vb4","Magnet":false,"RPM":"10","Rocking":true}],"SkipButton":true,"StepNumber":10,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"Magnet on, bag held still. Duration is the data entry Magnet time.","Label":"Magnet on","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"de4","Magnet":true,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":11,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["A","I"],"Connections":[{"con":"1","name":"A"},{"con":"2","name":"I"}],"Description":"Flexible step: the volume is a limit. It ends when the bubble sensor on line A (sensor 2) sees air, whichever comes first.","Label":"Remove supernatant","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"vb6","flowDirection":"A to I","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":true,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":12,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry_2","type":"BubbleSensor"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["K","I"],"Connections":[{"con":"1","name":"K"},{"con":"2","name":"I"}],"Description":"Air from the filter on line K pushes the remaining liquid in the line to the supernatant bag.","Label":"Clear line with air","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"10","flowDirection":"K to I","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":true,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":13,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["E","A"],"Connections":[{"con":"1","name":"E"},{"con":"2","name":"A"}],"Description":"Magnet off. Volume = Cell volume x 2.","Label":"Add wash buffer","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"vb3","flowDirection":"E to A","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":14,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"Fixed 30 s of rocking (a plain number, not a data entry).","Label":"Mix wash","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"30","AngleStart":"-30","Duration":"30","Magnet":false,"RPM":"20","Rocking":true}],"SkipButton":true,"StepNumber":15,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"Fixed 60 s magnet time.","Label":"Magnet on","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"60","Magnet":true,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":16,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["A","I"],"Connections":[{"con":"1","name":"A"},{"con":"2","name":"I"}],"Description":"Bubble sensor trigger on both sensors (wet to dry).","Label":"Remove wash","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"100","Name":"1","Volume":"vb3","flowDirection":"A to I","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":true,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":17,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry_Both","type":"BubbleSensor"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["F","A"],"Connections":[{"con":"1","name":"F"},{"con":"2","name":"A"}],"Description":"Magnet off. Volume = Cell volume + 10 mL (variable with an add operation).","Label":"Resuspend cells","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"50","Name":"1","Volume":"vb7","flowDirection":"F to A","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":18,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"","Label":"Release and mix","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"30","AngleStart":"-30","Duration":"60","Magnet":false,"RPM":"20","Rocking":true}],"SkipButton":true,"StepNumber":19,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"","Label":"Check output bag","LastStep":false,"Lid":"Retract","Prompt":{"enabled":true,"message":"Check that the output bag is connected to line C and its clamp is open, then press Continue."},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":20,"Step_Type":"Normal","Triggers":[{"Target":"5","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["A","C"],"Connections":[{"con":"1","name":"A"},{"con":"2","name":"C"}],"Description":"Flexible step into the output bag; ends when both bubble sensors see air.","Label":"Harvest cells","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"60","Name":"1","Volume":"vb7","flowDirection":"A to C","variableSet":true}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":21,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"WetToDry_Both","type":"BubbleSensor"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":["K","C"],"Connections":[{"con":"1","name":"K"},{"con":"2","name":"C"}],"Description":"Last air push moves the liquid left in the line into the output bag.","Label":"Flush line to output","LastStep":false,"Lid":"Retract","Prompt":{"enabled":false,"message":""},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"60","Name":"1","Volume":"8","flowDirection":"K to C","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":22,"Step_Type":"Normal","Triggers":[{"Target":"","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]},{"ChosenBags":[],"Connections":[],"Description":"","Label":"Finish","LastStep":true,"Lid":"Retract","Prompt":{"enabled":true,"message":"Run complete. Clamp and remove the output bag, then discard the kit."},"Pumps":[{"Direction":"CW","Duration":"","FlowRate":"","Name":"1","Volume":"","flowDirection":"","variableSet":false}],"Rocker":[{"AngleEnd":"0","AngleStart":"","Duration":"0","Magnet":false,"RPM":"10","Rocking":false}],"SkipButton":true,"StepNumber":23,"Step_Type":"Normal","Triggers":[{"Target":"5","Unit":"Seconds","subType":"","type":"Timer"}],"timePeriods":[{"Name":"Main"}]}],"bags":{"A":{"capacity":"","connectToValve":"","description":"","label":"Isolation bag","second_connection":"","selected":"","startingVolume":""},"B":{"capacity":"","connectToValve":"","description":"","label":"PBS/1% HSA","second_connection":"E","selected":"","startingVolume":"500"},"C":{"capacity":"500","connectToValve":"","description":"","label":"Output","second_connection":"","selected":"","startingVolume":"0"},"D":{"capacity":"","connectToValve":"","description":"","label":"","second_connection":"","selected":"","startingVolume":""},"E":{"capacity":"","connectToValve":"","description":"","label":"PBS/1% HSA","second_connection":"","selected":"","startingVolume":""},"F":{"capacity":"","connectToValve":"","description":"","label":"Cell media","second_connection":"","selected":"","startingVolume":"150"},"G":{"capacity":"","connectToValve":"","description":"","label":"Cell input","second_connection":"","selected":"","startingVolume":"20"},"H":{"capacity":"","connectToValve":"","description":"","label":"CTS Dynabeads CD3/CD28","second_connection":"","selected":"","startingVolume":"12"},"I":{"capacity":"1000","connectToValve":"","description":"","label":"Supernatant","second_connection":"","selected":"","startingVolume":"0"}},"dataEntry":[{"de1":{"Name":"Cell volume","max":"100","min":"20","units":"mL"},"de2":{"Name":"Bead volume","max":"10","min":"2","units":"mL"},"de3":{"Name":"Incubation time","max":"3600","min":"900","units":"seconds"},"de4":{"Name":"Magnet time","max":"300","min":"120","units":"seconds"}}],"variables":[{"vb1":{"Name":"Cell transfer","dataentryvalue":"de1","fixedvalue":"0","operation":"","types":"Volume","units":"mL"},"vb2":{"Name":"Dilution buffer","dataentryvalue":"de1","fixedvalue":"1","operation":"*","types":"Volume","units":"mL"},"vb3":{"Name":"Wash volume","dataentryvalue":"de1","fixedvalue":"2","operation":"*","types":"Volume","units":"mL"},"vb4":{"Name":"Incubation time","dataentryvalue":"de3","fixedvalue":"60","operation":"-","types":"Time","units":"seconds"},"vb5":{"Name":"Mixing time","dataentryvalue":"de3","fixedvalue":"15","operation":"/","types":"Time","units":"seconds"},"vb6":{"Name":"Supernatant volume","dataentryvalue":"de1","fixedvalue":"2","operation":"*","types":"Volume","units":"mL"},"vb7":{"Name":"Resuspension volume","dataentryvalue":"de1","fixedvalue":"10","operation":"+","types":"Volume","units":"mL"}}]}</script>
 <script id="logic">
 // <logic>
 
@@ -716,8 +756,8 @@ function prepRows(m,kitId,L){
 function prepText(m,kitId,L){
   const rows=prepRows(m,kitId,L), q=v=>String(Math.round(v*10)/10);
   const out=['Bag preparation - '+m.name+' ('+KITS[kitId].name+')'];
-  out.push(['Connect to line','Bag','Protocol start (mL)','Recommended start (mL)','Prepare (mL)','Peak liquid (mL)','Air added (mL)',(m.countAir?'Peak incl. air (mL)':'Peak (mL)'),'Capacity (mL)','Check'].join('\t'));
-  rows.forEach(r=>out.push([r.lines,r.name,(r.startNote? r.startNote : q(r.protocolStart)),(r.recommended===null? 'enter your volume*' : q(r.recommended)+(r.recStar?'*':'')),q(r.prepare),q(r.peakLiquid),q(r.air),q(m.countAir?r.peakTotal:r.peakLiquid),r.cap>0? q(r.cap)+(r.capSrc?' ('+r.capSrc+')':'') : 'unknown',r.status].join('\t')));
+  out.push(['Connect to line','Bag','Protocol start (mL)','Recommended start (mL)','Prepare (mL)','Peak liquid (mL)','Air added (mL)',(m.countAir?'Peak incl. air (mL)':'Peak (mL)'),'Capacity (mL)','Volume check'].join('\t'));
+  rows.forEach(r=>out.push([r.lines,r.name,(r.startNote? r.startNote : q(r.protocolStart)),(r.recommended===null? 'enter your volume*' : q(r.recommended)+(r.recStar?'*':'')),q(r.prepare),q(r.peakLiquid),q(r.air),q(m.countAir?r.peakTotal:r.peakLiquid),r.cap>0? q(r.cap)+(r.capSrc?' ('+r.capSrc+')':'') : 'unknown',statusLabel(r.status,false)].join('\t')));
   return out.join('\n');
 }
 
@@ -1048,10 +1088,10 @@ function demandText(d){
 function prepTextAdv(m,kitId,L,env){
   const rows=advRows(m,kitId,L,env), q=v=>String(Math.round(v*10)/10);
   const out=['Bag preparation (advanced) - '+m.name+' ('+KITS[kitId].name+')'];
-  out.push(['Connect to line','Bag','Protocol start','Prepare (mL)','Needs at start (mL)','Recommended prepare (mL)','Peak liquid (mL)','Air added (mL)',(m.countAir?'Max in bag incl. air (mL)':'Max in bag (mL)'),'Capacity (mL)','Check','Depends on'].join('\t'));
+  out.push(['Connect to line','Bag','Protocol start','Prepare (mL)','Needs at start (mL)','Recommended prepare (mL)','Peak liquid (mL)','Air added (mL)',(m.countAir?'Max in bag incl. air (mL)':'Max in bag (mL)'),'Capacity (mL)','Volume check','Depends on'].join('\t'));
   rows.forEach(r=>out.push([r.lines,r.name,(r.startNote? r.startNote : q(r.protocolStart)),q(r.prepare),fmtRange(r.env.needMin,r.env.needMax),
     (r.recKind==='yours'? 'enter your volume' : fmtRange(r.recLo,r.recHi)+(r.recKind==='input'? ' (your input)':'')+(r.recKind==='protocol'?'*':'')),
-    fmtRange(r.env.liqMin,r.env.liqMax),(r.env.airMax>0? fmtRange(r.env.airMin,r.env.airMax) : '0'),q(r.maxIn),(r.cap>0? q(r.cap)+(r.capSrc?' ('+r.capSrc+')':'') : 'unknown'),r.status,r.drivers.join('; ')].join('\t')));
+    fmtRange(r.env.liqMin,r.env.liqMax),(r.env.airMax>0? fmtRange(r.env.airMin,r.env.airMax) : '0'),q(r.maxIn),(r.cap>0? q(r.cap)+(r.capSrc?' ('+r.capSrc+')':'') : 'unknown'),statusLabel(r.status,false),r.drivers.join('; ')].join('\t')));
   return out.join('\n');
 }
 
@@ -1069,7 +1109,19 @@ function applyTheme(){ const r=document.documentElement; if(theme==='light'||the
 $('themeBtn').addEventListener('click',()=>{ theme= theme==='auto'? 'light' : (theme==='light'? 'dark' : 'auto'); try{ localStorage.setItem('dcviewer-theme',theme); }catch(e){} applyTheme(); });
 applyTheme();
 function showMsg(t){ $('msg').textContent=t||''; }
-function shortStatus(b){ if(b.status==='OK') return 'OK'; if(b.issues.indexOf('Runs out')>=0) return 'Runs out'; if(b.issues.some(x=>x.indexOf('Over')===0)) return 'Over capacity'; return 'Not stated'; }
+function shortStatus(b){ if(b.status==='OK') return 'OK'; if(b.issues.indexOf('Runs out')>=0) return 'Too little'; if(b.issues.some(x=>x.indexOf('Over')===0)) return 'Too much'; return 'No start volume'; }
+function statusLabel(s,icons){
+  if(s==='OK') return icons? '\u2713 OK' : 'OK';
+  const out=s.split(' + ').map(p=>{ let m;
+    if(p==='Runs out') return 'Too little: bag runs out';
+    if(p==='Start volume not stated') return 'No start volume in protocol';
+    if(p==='Over capacity') return 'Too much: over bag capacity';
+    if(p==='Over capacity with air') return 'Too much with air: over bag capacity';
+    if((m=p.match(/^May run out \(needs up to (.+)\)$/))) return 'May run short (needs up to '+m[1]+')';
+    return p; });
+  const bad=/Runs out|Over|May run out|Later steps/.test(s);
+  return (icons? (bad? '\u2716\uFE0E ' : '\u26A0\uFE0E ') : '')+out.join('; ');
+}
 function statusClass(b){ return b.status==='OK'?'st-ok':((b.issues.indexOf('Runs out')>=0||b.issues.some(x=>x.indexOf('Over')===0))?'st-bad':'st-warn'); }
 
 // ---------- help ----------
@@ -1124,7 +1176,7 @@ function renderTabs(){
   P.forEach((p,i)=>{ const d=document.createElement('div'); d.className='tab'+(active===i?' on':''); d.title=p.label;
     d.innerHTML='<span class="lbl">'+esc(p.label)+'</span><span class="x" title="Close this protocol">\u00D7</span>';
     d.addEventListener('click',e=>{ if(e.target.classList.contains('x')){ closeProtocol(i); } else activate(i); }); t.appendChild(d); });
-  const c=document.createElement('div'); c.className='tab'+(active==='compare'?' on':''); c.innerHTML='<span class="lbl">Compare</span>';
+  const c=document.createElement('div'); c.className='tab cmp'+(active==='compare'?' on':''); c.innerHTML='<span class="lbl">Compare</span>';
   c.addEventListener('click',()=>activate('compare')); t.appendChild(c);
 }
 function closeProtocol(i){
@@ -1161,8 +1213,11 @@ function buildInputs(){
     t.appendChild(d);
   });
   t.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{
-    const e=M.entries.find(x=>x.id===inp.dataset.id); e.value=num(inp.value); renderView(); }));
+    const e=M.entries.find(x=>x.id===inp.dataset.id); e.value=num(inp.value); updateDeHint(); renderView(); }));
+  updateDeHint();
 }
+function updateDeHint(){ const h=$('deHint'); if(!h||!M) return; const allMin=M.entries.length>0&&M.entries.every(e=>e.value===e.min);
+  h.textContent=allMin? 'These are the minimum values from the protocol. Set them to match your run before reading any volumes or times.' : ''; h.classList.toggle('hide',!allMin); }
 
 // ---------- steps view ----------
 function buildList(){
@@ -1312,13 +1367,17 @@ function buildPrep(){
   const t=$('prepTable'); if(!M) return;
   const rows=prepRows(M,kitId,L);
   const inp=(k,f,title)=>'<input type="number" step="any" min="0" data-k="'+esc(k)+'" data-f="'+f+'"'+(title? ' title="'+title+'"':'')+'>';
+  const COLS=advMode? [['Connect to line',110,'ctr'],['Bag',180,''],['Protocol start',100,'num'],['Prepare (mL)',120,'num'],['Needs at start',110,'num'],['Recommended prepare',130,'num'],['Peak liquid',100,'num'],['Air added',90,'num'],['Max in bag',110,'num'],['Capacity (mL)',120,'num'],['Volume check',250,''],['Depends on',170,''],['Where the volume comes from',280,'']]
+    : [['Connect to line',110,'ctr'],['Bag',190,''],['Protocol start',110,'num'],['Prepare (mL)',120,'num'],['Recommended',120,'num'],['Smallest bag to use',130,'num'],['Volume check',260,'']];
+  const head='<colgroup>'+COLS.map(c=>'<col style="width:'+c[1]+'px">').join('')+'</colgroup><tr>'+COLS.map(c=>'<th class="'+c[2]+'"'+(c[0]==='Max in bag'?' id="thMax"':'')+'>'+c[0]+'</th>').join('')+'</tr>';
+  t.style.minWidth=COLS.reduce((a,c)=>a+c[1],0)+'px';
   let h;
   if(!advMode){
-    h='<tr><th>Connect to line</th><th>Bag</th><th>Protocol start</th><th>Prepare (mL)</th><th>Recommended</th><th>Smallest bag to use</th><th>Check</th></tr>';
-    rows.forEach(r=>{ h+='<tr data-k="'+esc(r.key)+'"><td><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td><td class="num" data-c="ps"></td><td class="num">'+inp(r.key,'start')+'</td><td class="num" data-c="rec"></td><td class="num" data-c="maxin"></td><td data-c="st"></td></tr>'; });
+    h=head;
+    rows.forEach(r=>{ h+='<tr data-k="'+esc(r.key)+'"><td class="ctr"><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td><td class="num" data-c="ps"></td><td class="num">'+inp(r.key,'start')+'</td><td class="num" data-c="rec"></td><td class="num" data-c="maxin"></td><td class="chk" data-c="st"></td></tr>'; });
   } else {
-    h='<tr><th>Connect to line</th><th>Bag</th><th>Protocol start</th><th>Prepare (mL)</th><th>Needs at start</th><th>Recommended prepare</th><th>Peak liquid</th><th>Air added</th><th id="thMax">Max in bag</th><th>Capacity (mL)</th><th>Check</th><th>Depends on</th><th>Where the volume comes from</th></tr>';
-    rows.forEach(r=>{ h+='<tr data-k="'+esc(r.key)+'"><td><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td><td class="num" data-c="ps"></td><td class="num">'+inp(r.key,'start')+'<div class="note" data-c="vnote"></div></td><td class="num" data-c="need"></td><td class="num" data-c="rec"></td><td class="num" data-c="pl"></td><td class="num" data-c="air"></td><td class="num" data-c="maxin"></td><td class="num">'+inp(r.key,'cap','0 = unknown')+'<div class="note" data-c="capn"></div></td><td data-c="st"></td><td class="note" data-c="dep"></td><td class="dem" data-c="dem"></td></tr>'; });
+    h=head;
+    rows.forEach(r=>{ h+='<tr data-k="'+esc(r.key)+'"><td class="ctr"><span class="linebadge">'+esc(r.lines)+'</span></td><td><b>'+esc(r.name||'(no name)')+'</b></td><td class="num" data-c="ps"></td><td class="num">'+inp(r.key,'start')+'<div class="note" data-c="vnote"></div></td><td class="num" data-c="need"></td><td class="num" data-c="rec"></td><td class="num" data-c="pl"></td><td class="num" data-c="air"></td><td class="num" data-c="maxin"></td><td class="num">'+inp(r.key,'cap','0 = unknown')+'<div class="note" data-c="capn"></div></td><td class="chk" data-c="st"></td><td class="note" data-c="dep"></td><td class="dem" data-c="dem"></td></tr>'; });
   }
   t.innerHTML=h;
   t.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{
@@ -1346,7 +1405,7 @@ function renderPrep(){
     set('ps', r.startNote? esc(r.startNote) : q(r.protocolStart)+' mL');
     const cap=r.cap>0? r.cap : 0, over=cap>0&&r.maxIn>cap+0.001;
     set('maxin','<b'+(over?' class="cellbad"':'')+'>'+q(r.maxIn)+' mL</b>'+(cap>0? '<div class="note">of '+q(cap)+(r.capSrc? ' ('+esc(r.capSrc)+')':'')+'</div>' : ''));
-    const stc=tr.querySelector('[data-c=st]'); stc.textContent=r.status; stc.className=statusCls(r.status);
+    const stc=tr.querySelector('[data-c=st]'); stc.textContent=statusLabel(r.status,true); stc.className='chk '+statusCls(r.status);
     if(!advMode){
       set('rec', r.recommended===null? '<span class="note">your volume</span>*' : q(r.recommended)+' mL'+(r.recStar?'*':''));
     } else {
@@ -1447,7 +1506,8 @@ document.addEventListener('keydown',e=>{ const t=e.target&&e.target.tagName; if(
   if(e.key==='ArrowRight'||e.key==='ArrowDown'){ if(view==='steps'&&active!=='compare'){ e.preventDefault(); step(1); } }
   if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ if(view==='steps'&&active!=='compare'){ e.preventDefault(); step(-1); } } });
 $('file').addEventListener('change',e=>{ openFiles(e.target.files); e.target.value=''; });
-$('ex').addEventListener('click',()=>loadText($('example').textContent,'TRANG-TRY (example)'));
+$('ex').addEventListener('click',()=>loadText($('example').textContent,'Example (CD3+ isolation)'));
+$('exHelp').addEventListener('click',()=>{ setHelp(false); loadText($('example').textContent,'Example (CD3+ isolation)'); });
 const drop=$('drop');
 ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
@@ -1469,7 +1529,7 @@ function fitNav(){ const n=document.querySelector('#vSteps .nav'); if(n&&n.offse
 window.addEventListener('resize',fitNav);
 function alignSteps_(){
   // one-time alignment when the controls and diagram would not both fit on screen; afterwards the page never moves
-  if(window.innerWidth<=760) return;
+  if(window.innerWidth<=1050||window.innerHeight<600) return;
   const n=document.querySelector('#vSteps .nav'), s=document.querySelector('#kitsvg svg'); if(!n||!s) return;
   const nr=n.getBoundingClientRect(); if(nr.top<=1) return;
   if(s.getBoundingClientRect().bottom>window.innerHeight) window.scrollTo(0,window.scrollY+nr.top);
@@ -1495,7 +1555,7 @@ function saveNow(){
     if(!P.length){ localStorage.removeItem(SKEY); saveFailed=false; setSaveNote(''); return; }
     localStorage.setItem(SKEY,JSON.stringify(sessionObject()));
     saveFailed=false; const d=new Date(); setSaveNote('Autosaved '+pad2(d.getHours())+':'+pad2(d.getMinutes()));
-  }catch(e){ saveFailed=true; setSaveNote('Autosave is not available in this browser. Use Save session to keep your work.'); }
+  }catch(e){ saveFailed=true; setSaveNote('Autosave is not available in this browser. Use Session \u25BE \u2192 Save session to file to keep your work.'); }
 }
 window.addEventListener('pagehide',()=>{ if(saveT) saveNow(); });
 window.addEventListener('beforeunload',e=>{ if(saveFailed&&P.length){ e.preventDefault(); e.returnValue=''; } });
@@ -1559,10 +1619,12 @@ $('saveSess').addEventListener('click',()=>{
   if(!P.length){ showMsg('Open a protocol first; there is nothing to save yet.'); return; }
   showMsg(''); download('dcviewer-session-'+stamp()+'.json',JSON.stringify(sessionObject(),null,1),'application/json');
 });
-$('sessFile').addEventListener('change',e=>{ openFiles(e.target.files); e.target.value=''; });
+document.querySelectorAll('.menupop button').forEach(b=>b.addEventListener('click',()=>$('sessMenu').removeAttribute('open')));
+document.addEventListener('click',e=>{ const m=$('sessMenu'); if(m.open&&!m.contains(e.target)) m.removeAttribute('open'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('sessMenu').removeAttribute('open'); });
 $('clearAll').addEventListener('click',()=>{
   if(!P.length&&!readStored()) return;
-  if(!confirm('Close all protocols and delete the copy saved in this browser?\n\nTip: click Save session first if you want to keep a copy.')) return;
+  if(!confirm('Close all protocols and delete the copy autosaved in this browser?\n\nTip: use Session > Save session to file first if you want to keep a copy.')) return;
   P.length=0; active=-1; M=null; showMsg('');
   try{ localStorage.removeItem(SKEY); }catch(e){}
   restorePending=false; $('restoreBar').classList.add('hide');
